@@ -2,129 +2,298 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Autonomous Vehicle – Command Console</title>
+<title>Autonomous Bio-Cyber Neural HUD</title>
+
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet">
+
 <style>
 html,body{
   margin:0;
-  background:#030712;
-  font-family:'Rajdhani', monospace;
-  color:#00eaff;
   height:100%;
   overflow:hidden;
+  font-family:'Rajdhani',sans-serif;
+  background:#000;
+  color:#00eaff;
 }
 
-/* Console layout */
-#console{
+/* CRT EFFECT */
+body::before{
+  content:"";
   position:fixed;
   inset:0;
-  background:radial-gradient(circle at center,#07152e 0%,#02050f 65%);
-  display:flex;
-  flex-direction:column;
+  z-index:10;
+  pointer-events:none;
+  background:
+    linear-gradient(rgba(0,0,0,0) 50%, rgba(0,0,0,.25) 50%),
+    linear-gradient(90deg, rgba(255,0,0,.05), rgba(0,255,0,.02), rgba(0,0,255,.05));
+  background-size:100% 4px, 3px 100%;
 }
 
-/* Header */
-#header{
-  padding:16px 24px;
-  border-bottom:1px solid #00eaff;
-  display:flex;
-  justify-content:space-between;
-  font-family:'Orbitron', sans-serif;
-  letter-spacing:2px;
-}
-
-/* Main grid */
-#main{
-  flex:1;
-  display:grid;
-  grid-template-columns:1.3fr 1fr;
-}
-
-/* Map panel */
+/* ================= MAP ================= */
 #map{
-  position:relative;
-  padding:16px;
+  position:fixed;
+  inset:0;
+  z-index:0;
+  filter:grayscale(1) brightness(.4) contrast(1.2);
 }
-#map iframe{
+#map iframe{width:100%;height:100%;border:none;transform:scale(1.05);}
+
+/* ================= OVERLAY ================= */
+#overlay{
+  position:fixed;
+  inset:0;
+  z-index:1;
+  background:
+    radial-gradient(circle at center, rgba(0,255,255,.08), rgba(0,0,0,.92) 70%);
+  pointer-events:none;
+}
+
+/* 🌫 FOG */
+#fog{
+  position:fixed;
+  inset:0;
+  z-index:2;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at center, rgba(0,255,255,.08), rgba(0,0,0,.9) 70%);
+}
+
+/* 🎯 SCANNER */
+#scanner{
+  position:fixed;
+  inset:0;
+  z-index:3;
+  pointer-events:none;
+}
+.scanline{
+  position:absolute;
+  width:100%;
+  height:2px;
+  background:linear-gradient(to right, transparent, rgba(0,255,255,.7), transparent);
+  animation:scanMove 4s linear infinite;
+}
+@keyframes scanMove{
+  0%{top:0%;}
+  100%{top:100%;}
+}
+
+/* ================= CORE ================= */
+#core{
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  width:160px;
+  height:160px;
+  border-radius:50%;
+  background:radial-gradient(circle, rgba(0,255,255,.25), transparent 70%);
+  box-shadow:0 0 90px rgba(0,255,255,.6);
+  z-index:5;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family:'Orbitron';
+  text-align:center;
+  animation:pulse 3s infinite;
+}
+@keyframes pulse{
+  0%,100%{transform:translate(-50%,-50%) scale(1);}
+  50%{transform:translate(-50%,-50%) scale(1.08);}
+}
+
+/* ================= ZONES ================= */
+.zone{
+  position:absolute;
+  width:260px;
+  padding:14px;
+  z-index:6;
+  background:rgba(0,0,0,.35);
+  border:1px solid rgba(0,255,255,.25);
+  backdrop-filter:blur(10px);
+  box-shadow:0 0 20px rgba(0,255,255,.05);
+}
+
+#bioZone{top:12%;left:10%;}
+#cyberZone{top:12%;right:10%;}
+#medicalZone{bottom:12%;right:10%;}
+
+/* ================= NODES ================= */
+.node{
+  position:absolute;
+  z-index:6;
+  font-size:12px;
+  opacity:.85;
+  text-shadow:0 0 10px rgba(0,255,255,.3);
+}
+
+#bio{top:8%;left:50%;transform:translateX(-50%);}
+#netNode{top:50%;left:8%;}
+#rf{top:50%;right:8%;}
+#dev{bottom:8%;left:50%;transform:translateX(-50%);}
+
+/* ================= BUTTONS (UPGRADED) ================= */
+button{
+  width:100%;
+  margin:6px 0;
+  padding:12px;
+  border:1px solid #00eaff;
+  background:transparent;
+  color:#00eaff;
+  font-family:'Orbitron';
+  cursor:pointer;
+  position:relative;
+  overflow:hidden;
+  transition:0.4s;
+
+  clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);
+}
+
+button::after{
+  content:'';
+  position:absolute;
+  top:0;
+  left:-100%;
   width:100%;
   height:100%;
-  border:none;
-  border-radius:8px;
-  box-shadow:0 0 25px rgba(0,255,255,.25);
+  background:linear-gradient(90deg, transparent, rgba(0,255,255,.4), transparent);
+  transition:.5s;
 }
 
-/* Info panel */
-#info{
-  padding:32px;
-}
-h3{
-  font-family:'Orbitron', sans-serif;
-  letter-spacing:2px;
-  margin-top:0;
-}
-.controls{
-  margin-top:28px;
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:14px;
-}
-button{
-  padding:14px 18px;
-  background:transparent;
-  border:1px solid #00eaff;
-  color:#00eaff;
-  font-family:'Orbitron', sans-serif;
-  letter-spacing:2px;
-  cursor:pointer;
-  border-radius:6px;
-  transition:0.3s;
-}
 button:hover{
-  background:#00eaff;
-  color:#000;
+  background:rgba(0,255,255,.1);
+  box-shadow:0 0 15px #00eaff;
 }
 
-/* Footer */
-#footer{
-  border-top:1px solid #00eaff;
-  padding:14px;
-  display:flex;
-  justify-content:space-around;
-  font-family:'Orbitron', sans-serif;
+button:hover::after{
+  left:100%;
 }
+
+.panelTitle{
+  font-family:'Orbitron';
+  font-size:11px;
+  opacity:.8;
+  margin-bottom:6px;
+}
+
 </style>
 </head>
+
 <body>
 
-<div id="console">
-  <div id="header">
-    <span>AUTONOMOUS VEHICLE — COMMAND CONSOLE</span>
-    <span>STATUS: NOMINAL</span>
-  </div>
-
-  <div id="main">
-    <div id="map">
-      <iframe src="https://www.google.com/maps?q=Manhattan&output=embed" loading="lazy"></iframe>
-    </div>
-
-    <div id="info">
-      <h3>SYSTEM ACCESS</h3>
-      <p>Select subsystem to engage.</p>
-      <div class="controls">
-        <button onclick="location.href='cyber2.html'">CYBER</button>
-        <button onclick="location.href='Medical.html'">MEDICAL</button>
-        <button onclick="location.href='route.html'">ROUTE</button>
-        <button onclick="location.href='systems.html'">SYSTEMS</button>
-      </div>
-    </div>
-  </div>
-
-  <footer>
-    <span>AI CORE: ONLINE</span>
-    <span>SECURITY: ACTIVE</span>
-  </footer>
+<div id="map">
+  <iframe src="https://www.google.com/maps?q=Manhattan&output=embed"></iframe>
 </div>
+
+<div id="overlay"></div>
+<div id="fog"></div>
+
+<div id="scanner">
+  <div class="scanline"></div>
+</div>
+
+<!-- CORE -->
+<div id="core">
+AI CORE<br>
+<span id="trust">100%</span>
+</div>
+
+<!-- CYBER -->
+<div id="cyberZone" class="zone">
+<div class="panelTitle">CYBER SYSTEM</div>
+NET: <span id="netStat">--</span><br>
+PACKETS: <span id="packets">--</span><br>
+THREAT: <span id="threat">--</span><br>
+<button>SCAN NETWORK</button>
+<button>ANALYZE RF</button>
+<button>TRACE SIGNAL</button>
+</div>
+
+<!-- BIO -->
+<div id="bioZone" class="zone">
+<div class="panelTitle">BIO SYSTEM</div>
+HEART: <span id="heart">--</span><br>
+RESP: <span id="resp">--</span><br>
+STRESS: <span id="stress">--</span><br>
+<button>SCAN VITALS</button>
+<button>RUN DIAGNOSTIC</button>
+</div>
+
+<!-- MEDICAL -->
+<div id="medicalZone" class="zone">
+<div class="panelTitle">NEURAL SYSTEM</div>
+EEG: <span id="eeg">--</span><br>
+EMG: <span id="emg">--</span><br>
+STATUS: <span id="status">--</span><br>
+<button>NEURAL CHECK</button>
+<button>SYNCHRONIZE</button>
+</div>
+
+<!-- NODES -->
+<div id="bio" class="node">BIO<br><span id="bioVal">--</span></div>
+<div id="netNode" class="node">NET<br><span id="netVal">--</span></div>
+<div id="rf" class="node">RF<br><span id="rfVal">--</span></div>
+<div id="dev" class="node">DEV<br><span id="devVal">--</span></div>
+
+<script>
+
+function r(min,max){return Math.random()*(max-min)+min}
+
+setInterval(()=>{
+
+  const heart = Math.floor(r(60,110));
+  const resp = Math.floor(r(10,20));
+  const stress = ["LOW","MED","HIGH"][Math.floor(Math.random()*3)];
+
+  const netVal = Math.floor(r(20,100));
+  const packetsVal = Math.floor(r(50,200));
+  const threatVal = Math.floor(Math.random()*100);
+
+  const eeg = ["FOCUSED","DROWSY","ACTIVE"][Math.floor(Math.random()*3)];
+  const emg = ["RELAXED","TENSE","ACTIVE"][Math.floor(Math.random()*3)];
+  const status = heart > 100 ? "ELEVATED" : "NOMINAL";
+
+  heartEl.textContent = heart;
+  respEl.textContent = resp;
+  stressEl.textContent = stress;
+
+  netStat.textContent = netVal;
+  packets.textContent = packetsVal;
+  threat.textContent = threatVal+"%";
+
+  eegEl.textContent = eeg;
+  emgEl.textContent = emg;
+  statusEl.textContent = status;
+
+  trust.textContent = Math.floor(100 - threatVal/2)+"%";
+
+  bioVal.textContent = heart+" bpm";
+  netValSpan.textContent = netVal;
+  rfVal.textContent = Math.floor(r(1,10));
+  devVal.textContent = Math.floor(r(1,5));
+
+},1200);
+
+/* ELEMENTS */
+const heartEl=document.getElementById("heart");
+const respEl=document.getElementById("resp");
+const stressEl=document.getElementById("stress");
+
+const netStat=document.getElementById("netStat");
+const packets=document.getElementById("packets");
+const threat=document.getElementById("threat");
+
+const eegEl=document.getElementById("eeg");
+const emgEl=document.getElementById("emg");
+const statusEl=document.getElementById("status");
+
+const bioVal=document.getElementById("bioVal");
+const netValSpan=document.getElementById("netVal");
+const rfVal=document.getElementById("rfVal");
+const devVal=document.getElementById("devVal");
+
+const trust=document.getElementById("trust");
+
+</script>
 
 </body>
 </html>
-
