@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ESP32 WiFi Dashboard</title>
+
+<style>
+body{
+  font-family:Arial;
+  background:#0f1115;
+  color:#fff;
+  text-align:center;
+  padding:20px;
+}
+
+h2{margin-bottom:10px;}
+
+.status{
+  margin:10px auto;
+  padding:8px;
+  width:200px;
+  border-radius:20px;
+  background:#333;
+}
+
+.status.connected{background:#00b894;}
+.status.disconnected{background:#d63031;}
+
+button{
+  padding:12px 18px;
+  margin:6px;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  font-size:15px;
+}
+
+#connect{background:#00b894;color:white;}
+#scan{background:#0984e3;color:white;}
+#disconnect{background:#d63031;color:white;}
+
+table{
+  margin:20px auto;
+  width:90%;
+  max-width:800px;
+  border-collapse:collapse;
+}
+
+th, td{
+  padding:10px;
+  border-bottom:1px solid #333;
+}
+
+th{
+  background:#1e1e1e;
+}
+
+.bar{
+  height:10px;
+  background:#222;
+  border-radius:5px;
+  overflow:hidden;
+}
+
+.fill{
+  height:100%;
+  background:#00b894;
+}
+</style>
+</head>
+
+<body>
+
+<h2>📡 ESP32 WiFi Dashboard</h2>
+
+<div id="status" class="status disconnected">Disconnected</div>
+
+<button id="connect" onclick="connectESP32()">Connect</button>
+<button id="scan" onclick="scanWifi()">Scan</button>
+<button id="disconnect" onclick="disconnectESP32()">Disconnect</button>
+
+<table>
+  <thead>
+    <tr>
+      <th>SSID</th>
+      <th>Signal</th>
+      <th>Strength</th>
+      <th>Security</th>
+    </tr>
+  </thead>
+  <tbody id="wifiTable"></tbody>
+</table>
+
+<script>
+
+let port, reader, writer;
+let keepReading = false;
+
+function setStatus(connected){
+  const el = document.getElementById("status");
+
+  if(connected){
+    el.innerText = "Connected";
+    el.classList.add("connected");
+    el.classList.remove("disconnected");
+  } else {
+    el.innerText = "Disconnected";
+    el.classList.add("disconnected");
+    el.classList.remove("connected");
+  }
+}
+
+async function connectESP32(){
+  try{
+    port = await navigator.serial.requestPort();
+    await port.open({ baudRate: 115200 });
+
+    writer = port.writable.getWriter();
+    reader = port.readable.getReader();
+
+    keepReading = true;
+    readSerial();
+
+    setStatus(true);
+  } catch(e){
+    alert("Connection failed");
+  }
+}
+
+async function scanWifi(){
+  if(!writer) return alert("Connect first");
+
+  await writer.write(new TextEncoder().encode("scanwifi\n"));
+
+  document.getElementById("wifiTable").innerHTML = "";
+}
+
+async function disconnectESP32(){
+
+  keepReading = false;
+
+  try{
+    if(reader){
+      await reader.cancel();
+      reader.releaseLock();
+    }
+
+    if(writer){
+      writer.releaseLock();
+    }
+
+    if(port){
+      await port.close();
+    }
+
+    setStatus(false);
+
+  } catch(e){
+    console.log(e);
+  }
+}
+
+async function readSerial(){
+
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while(keepReading){
+
+    const { value, done } = await reader.read();
+    if(done) break;
+
+    buffer += decoder.decode(value);
+
+    let lines = buffer.split("\n");
+    buffer = lines.pop();
+
+    for(let line of lines){
+      parseLine(line.trim());
+    }
+  }
+}
+
+function parseLine(line){
+
+  if(line === "BEGIN") return;
+  if(line === "END") return;
+
+  if(line.startsWith("SSID|")){
+    let parts = line.split("|");
+
+    let ssid = parts[1];
+    let rssi = parseInt(parts[3]);
+    let enc = parts[5];
+
+    let strength = Math.min(100, Math.max(0, 2 * (rssi + 100)));
+
+    let row = `
+      <tr>
+        <td>${ssid}</td>
+        <td>${rssi} dBm</td>
+        <td>
+          <div class="bar">
+            <div class="fill" style="width:${strength}%"></div>
+          </div>
+        </td>
+        <td>${enc}</td>
+      </tr>
+    `;
+
+    document.getElementById("wifiTable").innerHTML += row;
+  }
+}
+
+</script>
+
+</body>
+</html>
