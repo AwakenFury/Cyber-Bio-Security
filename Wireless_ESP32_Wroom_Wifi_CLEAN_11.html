@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Passive WiFi Monitor</title>
+<style>
+  body { font-family: monospace; background: #000; color: #fff; text-align: center; padding: 10px; }
+  .stats-grid { display: flex; justify-content: center; gap: 10px; margin: 15px auto; max-width: 900px; }
+  .stat-box { border: 1px solid #fff; padding: 10px; flex: 1; font-size: 0.8em; }
+  .stat-val { display: block; font-size: 1.2em; font-weight: bold; margin-top: 5px; }
+
+  .filter-area { margin: 15px; padding: 10px; border: 1px dashed #444; display: inline-block; }
+  input { background: #000; color: #fff; border: 1px solid #fff; padding: 8px; font-family: monospace; width: 250px; text-align: center; text-transform: uppercase; }
+
+  button { background: none; color: #fff; border: 1px solid #fff; padding: 10px; cursor: pointer; margin: 2px; min-width: 100px; }
+  button:hover { background: #fff; color: #000; }
+  .active-btn { background: #fff; color: #000; }
+
+  .table-container { max-height: 55vh; overflow-y: auto; width: 98%; margin: 15px auto; border: 1px solid #333; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.8em; }
+  th { position: sticky; top: 0; background: #fff; color: #000; padding: 8px; z-index: 10; }
+  td { padding: 6px; border-bottom: 1px solid #222; text-align: left; }
+
+  @media print {
+    body { background: #fff !important; color: #000 !important; }
+    button, .filter-area { display: none !important; }
+    .stat-box { border: 1px solid #000 !important; }
+    table, th, td { border: 1px solid #000 !important; color: #000 !important; }
+    .stat-val { color: #000 !important; }
+  }
+</style>
+</head>
+<body>
+
+<h2>📡 PASSIVE MONITOR</h2>
+
+<div class="stats-grid">
+  <div class="stat-box">Logged<span id="total" class="stat-val">0</span></div>
+  <div class="stat-box">Nearest SSID<span id="nearSSID" class="stat-val">-</span></div>
+  <div class="stat-box">Nearest MAC<span id="nearMAC" class="stat-val">-</span></div>
+  <div class="stat-box">Nearest RSSI<span id="nearRSSI" class="stat-val">-</span></div>
+</div>
+
+<div class="filter-area">
+  SEARCH: <input type="text" id="macFilter" placeholder="MAC or SSID" onkeyup="updateFilter()">
+</div>
+
+<div class="controls">
+  <button onclick="serial('connect')">Connect</button>
+  <button id="btnAuto" onclick="toggleAuto()">Start Auto</button>
+  <button onclick="downloadCSV()">Export CSV</button>
+  <button onclick="clearLog()">Clear Log</button>
+  <button onclick="serial('off')">Disconnect</button>
+</div>
+
+<div class="table-container">
+  <table>
+    <thead><tr><th>Time</th><th>SSID</th><th>BSSID (MAC)</th><th>RSSI</th><th>Δ Change</th><th>Ch</th></tr></thead>
+    <tbody id="log"></tbody>
+  </table>
+</div>
+
+<script>
+let port, reader, writer, active = false, auto = false;
+let logData = [], filterValue = "";
+let rssiHistory = {};
+
+function updateFilter() {
+  filterValue = document.getElementById('macFilter').value.trim().toUpperCase();
+  const rows = document.querySelectorAll("#log tr");
+  rows.forEach(row => {
+    row.style.display = row.innerText.toUpperCase().includes(filterValue) ? "" : "none";
+  });
+}
+
+function clearLog() {
+  logData = []; rssiHistory = {};
+  document.getElementById('log').innerHTML = "";
+  document.getElementById('total').innerText = "0";
+  ["nearSSID", "nearMAC", "nearRSSI"].forEach(id => document.getElementById(id).innerText = "-");
+}
+
+async function serial(cmd) {
+  try {
+    if (cmd === 'connect') {
+      port = await navigator.serial.requestPort();
+      await port.open({ baudRate: 115200 });
+      writer = port.writable.getWriter();
+      reader = port.readable.getReader();
+      active = true; read();
+    } else if (cmd === 'off') {
+      active = false; auto = false;
+      if (writer) {
+        await writer.write(new TextEncoder().encode("stop\n"));
+        writer.releaseLock();
+      }
+      if (reader) {
+        await reader.cancel();
+        reader.releaseLock();
+      }
+      if (port) await port.close();
+      setTimeout(() => location.reload(), 100);
+    }
+  } catch (e) { 
+    console.error(e);
+    location.reload();
+  }
+}
+
+async function toggleAuto() {
+  if(!writer) return alert("Connect First");
+  auto = !auto;
+  const btn = document.getElementById('btnAuto');
+  btn.innerText = auto ? "Stop Auto" : "Start Auto";
+  btn.classList.toggle('active-btn');
+  await writer.write(new TextEncoder().encode(auto ? "start\n" : "stop\n"));
+}
+
+async function read() {
+  const dec = new TextDecoder();
+  let buf = "";
+  while (active) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value);
+    let lines = buf.split("\n");
+    buf = lines.pop();
+    lines.forEach(l => parse(l.trim()));
+  }
+}
+
+function parse(l) {
+  if (!l.startsWith("DATA|")) return;
+  const [_, ssid, rssiStr, mac, ch] = l.split("|");
+  const rssi = parseInt(rssiStr);
+  const time = new Date().toLocaleTimeString();
+  
+  let deltaText = "-";
+  let deltaColor = "#fff";
+  if (rssiHistory[mac] !== undefined) {
+    const diff = rssi - rssiHistory[mac];
+    deltaText = (diff >= 0 ? "+" : "") + diff + " dB";
+    deltaColor = diff > 0 ? "#00ff00" : (diff < 0 ? "#ff4444" : "#fff");
+  }
+  rssiHistory[mac] = rssi;
+
+  let currentNearRSSI = parseInt(document.getElementById('nearRSSI').innerText) || -100;
+  if (rssi > currentNearRSSI) {
+    document.getElementById('nearSSID').innerText = ssid;
+    document.getElementById('nearMAC').innerText = mac;
+    document.getElementById('nearRSSI').innerText = rssi + " dBm";
+  }
+
+  logData.unshift({ time, ssid, mac, rssi, ch, deltaText });
+  document.getElementById('total').innerText = logData.length;
+
+  const isMatch = (filterValue === "" || mac.includes(filterValue) || ssid.toUpperCase().includes(filterValue));
+  const displayStyle = isMatch ? "" : "none";
+  const row = `<tr style="display: ${displayStyle}">
+    <td>${time}</td>
+    <td>${ssid}</td>
+    <td>${mac}</td>
+    <td>${rssi}</td>
+    <td style="color:${deltaColor}">${deltaText}</td>
+    <td>${ch}</td>
+  </tr>`;
+  document.getElementById('log').insertAdjacentHTML('afterbegin', row);
+}
+
+function downloadCSV() {
+  let csv = "Time,SSID,BSSID,RSSI,Delta,Channel\n";
+  logData.forEach(d => { csv += `${d.time},${d.ssid},${d.mac},${d.rssi},${d.deltaText},${d.ch}\n`; });
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `wifi_capture_${Date.now()}.csv`;
+  a.click();
+}
+</script>
+</body>
+</html>
