@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>USB Device Inspector</title>
+
+<style>
+/* --- SCREEN STYLES (Monochrome UI) --- */
+body {
+  font-family: monospace; /* Matching the hacker/inspector look */
+  background: #000000;
+  color: #ffffff;
+  margin: 0;
+  padding: 20px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 15px;
+}
+
+.panel {
+  background: transparent;
+  padding: 15px;
+  border: 1px solid #333;
+}
+
+h2, h3 {
+  margin-top: 0;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+h3 {
+  color: #fff;
+  border-bottom: 1px solid #333;
+  padding-bottom: 5px;
+}
+
+button {
+  padding: 10px 14px;
+  margin: 5px;
+  border: 1px solid #fff;
+  border-radius: 0px;
+  cursor: pointer;
+  background: transparent;
+  color: #fff;
+  font-family: monospace;
+  transition: 0.2s;
+}
+
+button:hover {
+  background: #fff;
+  color: #000;
+}
+
+#disconnect { border-color: #666; color: #666; }
+#disconnect:hover { background: #666; color: #000; }
+
+.box, .logbox {
+  background: transparent;
+  padding: 10px;
+  border: 1px solid #333;
+  margin-top: 10px;
+}
+
+.logbox {
+  height: 260px;
+  overflow: auto;
+  font-size: 13px;
+  line-height: 1.5;
+  border-color: #222;
+  color: #888;
+}
+
+.status {
+  padding: 8px;
+  border: 1px solid #fff;
+  text-align: center;
+  background: transparent;
+  text-transform: uppercase;
+  font-weight: bold;
+}
+
+.on { background: #fff !important; color: #000 !important; }
+.off { border-style: dashed; color: #666; border-color: #666; }
+
+.row {
+  padding: 8px;
+  border-bottom: 1px solid #222;
+}
+
+/* --- PRINT STYLES --- */
+@media print {
+  body { background: #fff !important; color: #000 !important; }
+  .panel, .box, .logbox { border: 1px solid #000 !important; }
+  button { display: none !important; }
+  h3 { border-bottom: 2px solid #000 !important; color: #000 !important; }
+  .status.on { background: #000 !important; color: #fff !important; }
+  .logbox { color: #000 !important; height: auto !important; overflow: visible !important; }
+}
+</style>
+</head>
+
+<body>
+
+<h2>🔍 Inspector Mode Upgrade</h2>
+
+<div class="grid">
+
+<!-- LEFT -->
+<div class="panel">
+
+<h3>Status</h3>
+<div id="status" class="status off">Disconnected</div>
+
+<h3>Controls</h3>
+<button id="connect" onclick="connectPort()">Connect Device</button>
+<button id="disconnect" onclick="disconnectPort()">Disconnect</button>
+<button id="export" onclick="exportCSV()">Export CSV</button>
+
+<h3>Current Device</h3>
+<div id="deviceBox" class="box">
+No device connected
+</div>
+
+<h3>Trust Rating</h3>
+<div id="trustBox" class="box">
+--
+</div>
+
+</div>
+
+<!-- RIGHT -->
+<div class="panel">
+
+<h3>Known Devices Seen</h3>
+<div id="historyBox" class="box">
+None
+</div>
+
+<h3 style="margin-top:20px;">Inspector Logs</h3>
+<div id="logBox" class="logbox"></div>
+
+</div>
+
+</div>
+
+<script>
+let port = null;
+let devices = [];
+let logs = [];
+
+function addLog(msg){
+  let ts = new Date().toLocaleTimeString();
+  logs.push({ timestamp: ts, message: msg });
+  let box = document.getElementById("logBox");
+  box.innerHTML += "[" + ts + "] " + msg + "<br>";
+  box.scrollTop = box.scrollHeight;
+}
+
+function setStatus(on){
+  let el = document.getElementById("status");
+  el.className = "status " + (on ? "on":"off");
+  el.innerText = on ? "Connected":"Disconnected";
+}
+
+async function connectPort(){
+  try{
+    port = await navigator.serial.requestPort();
+    await port.open({ baudRate:115200 });
+
+    let info = port.getInfo();
+    let vid = info.usbVendorId || 0;
+    let pid = info.usbProductId || 0;
+
+    let chip = detectChip(vid,pid);
+    let trust = trustLevel(chip);
+
+    let record = {
+      timestamp: new Date().toLocaleString(),
+      vid: vid,
+      pid: pid,
+      chip: chip,
+      trust: trust
+    };
+
+    devices.push(record);
+    showDevice(record);
+    renderHistory();
+    setStatus(true);
+
+    addLog("USB connected: " + chip);
+  }catch(e){
+    addLog("Connection failed");
+  }
+}
+
+async function disconnectPort(){
+  try{
+    if(port){
+      await port.close();
+      port = null;
+    }
+    setStatus(false);
+    addLog("USB disconnected");
+  }catch(e){
+    addLog("Disconnect error");
+  }
+}
+
+function detectChip(vid,pid){
+  if(vid === 4292) return "CP2102 Silicon Labs";
+  if(vid === 6790) return "CH340 WCH";
+  if(vid === 1027) return "FTDI FT232";
+  if(vid === 3034) return "Espressif Native USB";
+  return "Unknown Device (VID:"+vid+")";
+}
+
+function trustLevel(chip){
+  if(chip.includes("Espressif")) return "TRUSTED: ESP32 SOURCE";
+  if(chip.includes("CP2102")) return "PROBABLE: DEV BOARD";
+  return "CAUTION: UNVERIFIED CHIPSET";
+}
+
+function showDevice(d){
+  document.getElementById("deviceBox").innerHTML = `
+    <b>TIME:</b> ${d.timestamp}<br>
+    <b>VID:</b> ${d.vid} | <b>PID:</b> ${d.pid}<br>
+    <b>CHIP:</b> ${d.chip}
+  `;
+  document.getElementById("trustBox").innerHTML = d.trust;
+}
+
+function renderHistory(){
+  let html = "";
+  devices.slice().reverse().forEach(d=>{
+    html += `<div class="row">${d.chip}<br><small>VID:${d.vid} PID:${d.pid} | ${d.timestamp}</small></div>`;
+  });
+  document.getElementById("historyBox").innerHTML = html || "None";
+}
+
+function exportCSV(){
+  if(devices.length === 0) return alert("No history");
+  let csv = "Timestamp,VID,PID,Chipset,Trust\n";
+  devices.forEach(d=>{
+    csv += `"${d.timestamp}",${d.vid},${d.pid},"${d.chip}","${d.trust}"\n`;
+  });
+  let blob = new Blob([csv], {type:"text/csv"});
+  let a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "usb_inspector_report.csv";
+  a.click();
+  addLog("CSV Report exported");
+}
+</script>
+
+</body>
+</html>
