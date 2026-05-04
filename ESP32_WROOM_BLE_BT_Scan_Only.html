@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Dual Bluetooth Inspector</title>
+<style>
+  body { font-family: monospace; background: #000; color: #fff; text-align: center; padding: 15px; }
+  
+  .status { margin: 10px auto; padding: 10px; width: 200px; border: 1px solid #fff; font-weight: bold; text-transform: uppercase; }
+  .connected { background: #fff; color: #000; }
+  .disconnected { border-style: dashed; color: #666; border-color: #666; }
+
+  button { background: none; color: #fff; border: 1px solid #fff; padding: 10px 15px; cursor: pointer; margin: 4px; font-family: monospace; transition: 0.2s; }
+  button:hover { background: #fff; color: #000; }
+
+  .container { display: flex; justify-content: space-between; gap: 15px; margin-top: 20px; }
+  .panel { flex: 1; border: 1px solid #333; padding: 15px; min-height: 450px; }
+  .panel h3 { margin-top: 0; border-bottom: 1px solid #333; padding-bottom: 10px; letter-spacing: 1px; display: flex; justify-content: space-between; align-items: center;}
+  
+  .count-badge { font-size: 0.8em; border: 1px solid #fff; padding: 2px 8px; border-radius: 2px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { padding: 10px 5px; border-bottom: 1px solid #222; text-align: left; }
+  th { background: #fff; color: #000; text-transform: uppercase; font-size: 10px; }
+
+  .bar { height: 4px; background: #222; border: 1px solid #444; width: 50px; display: inline-block; vertical-align: middle; margin-left: 5px; }
+  .fill { height: 100%; background: #fff; }
+
+  @media print {
+    body { background: #fff !important; color: #000 !important; }
+    button { display: none !important; }
+    .panel, th, td, .bar { border: 1px solid #000 !important; }
+    .fill { background: #000 !important; }
+  }
+</style>
+</head>
+<body>
+
+<h2>📡 DUAL BLUETOOTH MONITOR</h2>
+<div id="status" class="status disconnected">Disconnected</div>
+
+<div class="controls">
+  <button onclick="connectESP32()">Connect</button>
+  <button onclick="sendCommand('scanall')">Scan All</button>
+  <button onclick="downloadCSV()">Export CSV</button>
+  <button onclick="clearLog()" style="border-color:#888;">Clear Log</button>
+  <button onclick="disconnectESP32()">Disconnect</button>
+</div>
+
+<div class="container">
+  <div class="panel">
+    <h3>
+      <span>🔵 BLE LOG</span>
+      <span class="count-badge" id="bleCount">0</span>
+    </h3>
+    <table>
+      <thead><tr><th>Device / ID</th><th>RSSI Strength</th></tr></thead>
+      <tbody id="bleTable"></tbody>
+    </table>
+  </div>
+
+  <div class="panel">
+    <h3>
+      <span>🔷 CLASSIC LOG</span>
+      <span class="count-badge" id="btCount">0</span>
+    </h3>
+    <table>
+      <thead><tr><th>Address / Info</th><th>RSSI Strength</th></tr></thead>
+      <tbody id="classicTable"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+let port, reader, writer, active = false;
+let logData = [], bleDevices = 0, btDevices = 0;
+
+function setStatus(on) {
+  const el = document.getElementById("status");
+  el.innerText = on ? "Connected" : "Disconnected";
+  el.className = "status " + (on ? "connected" : "disconnected");
+}
+
+async function connectESP32() {
+  try {
+    port = await navigator.serial.requestPort();
+    await port.open({ baudRate: 115200 });
+    writer = port.writable.getWriter();
+    reader = port.readable.getReader();
+    active = true; 
+    readSerial();
+    setStatus(true);
+  } catch(e) { console.error(e); }
+}
+
+async function sendCommand(cmd) {
+  if(!writer) return alert("Connect First");
+  if(cmd === 'scanall') clearLog();
+  await writer.write(new TextEncoder().encode(cmd + "\n"));
+}
+
+function clearLog() {
+  logData = [];
+  bleDevices = 0;
+  btDevices = 0;
+  document.getElementById("bleTable").innerHTML = "";
+  document.getElementById("classicTable").innerHTML = "";
+  document.getElementById("bleCount").innerText = "0";
+  document.getElementById("btCount").innerText = "0";
+}
+
+async function disconnectESP32() {
+  active = false;
+  try {
+    if(writer) { await writer.write(new TextEncoder().encode("stop\n")); writer.releaseLock(); }
+    if(reader) { await reader.cancel(); reader.releaseLock(); }
+    if(port) { await port.close(); }
+    setStatus(false);
+    setTimeout(() => location.reload(), 100);
+  } catch(e) { location.reload(); }
+}
+
+async function readSerial() {
+  const dec = new TextDecoder();
+  let buf = "";
+  while(active) {
+    const { value, done } = await reader.read();
+    if(done) break;
+    buf += dec.decode(value);
+    let lines = buf.split("\n");
+    buf = lines.pop();
+    lines.forEach(l => parse(l.trim()));
+  }
+}
+
+function parse(l) {
+  const time = new Date().toLocaleTimeString();
+  if(l.startsWith("BLE|")) {
+    let p = l.split("|");
+    bleDevices++;
+    document.getElementById("bleCount").innerText = bleDevices;
+    logData.push({ time, type: "BLE", info: p[1], rssi: p[3] });
+    updateTable("bleTable", p[1], p[3]);
+  } else if(l.startsWith("BT|")) {
+    let p = l.split("|");
+    btDevices++;
+    document.getElementById("btCount").innerText = btDevices;
+    logData.push({ time, type: "Classic", info: p[1], rssi: p[3] });
+    updateTable("classicTable", p[1], p[3]);
+  }
+}
+
+function updateTable(id, txt, rssi) {
+  let s = Math.min(100, Math.max(0, 2 * (parseInt(rssi) + 100)));
+  let row = `<tr><td><strong>${txt}</strong></td><td>${rssi} dBm <div class="bar"><div class="fill" style="width:${s}%"></div></div></td></tr>`;
+  document.getElementById(id).innerHTML += row;
+}
+
+function downloadCSV() {
+  let csv = "Time,Type,Device/MAC,RSSI\n";
+  logData.forEach(d => { csv += `${d.time},${d.type},"${d.info}",${d.rssi}\n`; });
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `bt_scan_${Date.now()}.csv`;
+  a.click();
+}
+</script>
+</body>
+</html>
