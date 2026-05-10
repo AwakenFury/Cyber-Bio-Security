@@ -1,233 +1,349 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MOBILE | CYBER-BIO HUD</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --neon-cyan: #00eaff;
-            --neon-red: #ff3b3b;
-            --neon-green: #00ff88;
-            --bg-dark: #030712;
-            --glass: rgba(0, 234, 255, 0.05);
-            --panel-bg: rgba(10, 25, 41, 0.95);
-        }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>CYBER HUD OS</title>
 
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet">
 
-        body {
-            margin: 0; background: var(--bg-dark);
-            font-family: 'Rajdhani', sans-serif; color: var(--neon-cyan);
-            min-height: 100vh; overflow-x: hidden;
-            display: flex; flex-direction: column;
-            text-transform: uppercase;
-        }
+<style>
 
-        /* Scanlines Overlay */
-        body::before {
-            content: " "; position: fixed; inset: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%);
-            background-size: 100% 3px; z-index: 1000; pointer-events: none;
-        }
+:root{
+  --cyan:#00eaff;
+  --red:#ff3b3b;
+  --green:#00ff88;
+}
 
-        /* --- LOGIN STAGE --- */
-        #login-stage {
-            position: fixed; inset: 0; z-index: 500;
-            display: flex; justify-content: center; align-items: center;
-            background: radial-gradient(circle at center, #07152e 0%, #02050f 100%);
-            padding: 20px;
-        }
-        .login-box {
-            width: 100%; max-width: 350px; padding: 30px; background: var(--panel-bg);
-            border: 1px solid var(--neon-cyan); text-align: center;
-            box-shadow: 0 0 20px rgba(0, 234, 255, 0.1);
-        }
-        .team-selector { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin: 20px 0; }
-        .team-btn { padding: 10px 2px; font-size: 0.6rem; background: rgba(0, 234, 255, 0.1); border: 1px solid var(--neon-cyan); color: var(--neon-cyan); font-family: 'Orbitron'; }
-        .team-btn.active { background: var(--neon-cyan); color: black; }
-        
-        input { 
-            width: 100%; padding: 15px; margin-bottom: 12px; 
-            background: rgba(0,0,0,0.5); color: white; border: 1px solid #1a3a4a; 
-            font-family: 'Rajdhani'; font-size: 1rem;
-        }
+*{
+  box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
+}
 
-        /* --- LOADING STAGE --- */
-        #loading-stage {
-            display: none; position: fixed; inset: 0; z-index: 400;
-            flex-direction: column; justify-content: center; align-items: center;
-            background: var(--bg-dark);
-        }
-        .progress-container { width: 80%; height: 2px; background: rgba(255,255,255,0.1); margin-top: 20px; }
-        #progress-bar { width: 0%; height: 100%; background: var(--neon-cyan); box-shadow: 0 0 15px var(--neon-cyan); }
+html,body{
+  margin:0;
+  height:100%;
+  overflow:hidden;
+  font-family:'Rajdhani',sans-serif;
+  background:#030712;
+  color:var(--cyan);
+}
 
-        /* --- MAIN HUD --- */
-        #hud-container {
-            display: none; flex-direction: column;
-            padding: 15px; gap: 15px; 
-            background: radial-gradient(circle at top, #07152e 0%, #02050f 100%);
-        }
+/* BACKGROUND */
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  background:radial-gradient(circle at center, rgba(0,234,255,0.08), transparent 60%);
+  pointer-events:none;
+}
 
-        .header-mobile { text-align: center; padding: 10px 0; border-bottom: 1px solid rgba(0, 234, 255, 0.3); }
-        .header-mobile h1 { font-family: 'Orbitron'; font-size: 1.2rem; letter-spacing: 4px; margin: 0; }
+body::after{
+  content:"";
+  position:fixed;
+  inset:0;
+  background:linear-gradient(rgba(255,255,255,0.02) 50%, rgba(0,0,0,0.2) 50%);
+  background-size:100% 4px;
+  pointer-events:none;
+}
 
-        .glass-panel { 
-            background: rgba(0, 20, 30, 0.6); 
-            border-left: 3px solid var(--neon-cyan); 
-            padding: 15px; 
-            position: relative;
-        }
-        .red-panel { border-left-color: var(--neon-red); }
-        
-        h3 { font-family: 'Orbitron'; font-size: 0.75rem; margin: 0 0 10px 0; letter-spacing: 1px; }
+/* CORRUPTION */
+.corruption{
+  animation:shake 0.12s infinite;
+  filter:contrast(1.3) saturate(1.5);
+}
 
-        /* Stats Bars */
-        .bar-bg { height: 8px; background: #000; width: 100%; margin: 8px 0; border: 1px solid #1a3a4a; }
-        .bar-fill { height: 100%; background: var(--neon-cyan); width: 70%; }
-        .bar-fill.red { background: var(--neon-red); width: 45%; }
+@keyframes shake{
+  0%{transform:translate(0,0)}
+  25%{transform:translate(-2px,1px)}
+  50%{transform:translate(2px,-1px)}
+  75%{transform:translate(-1px,0)}
+  100%{transform:translate(0,0)}
+}
 
-        /* Radar Section */
-        .viewport-mobile {
-            height: 300px; width: 100%; position: relative;
-            background: rgba(0,0,0,0.3); border: 1px solid rgba(0, 234, 255, 0.1);
-            display: flex; justify-content: center; align-items: center;
-            overflow: hidden;
-        }
-        #radar-container {
-            width: 250px; height: 250px; border-radius: 50%;
-            border: 1px solid rgba(0, 234, 255, 0.2); position: relative;
-        }
-        .radar-sweep {
-            position: absolute; inset: 0; border-radius: 50%;
-            background: conic-gradient(from 0deg, transparent 0deg, rgba(0, 234, 255, 0.2) 360deg);
-            animation: rotate 4s linear infinite;
-        }
-        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+#corrupt-overlay{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  background:repeating-linear-gradient(
+    0deg,
+    rgba(255,0,0,0.05),
+    rgba(0,0,0,0.05) 2px
+  );
+  opacity:0;
+  z-index:9999;
+}
 
-        /* Buttons */
-        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .hud-btn {
-            background: transparent; border: 1px solid var(--neon-cyan); color: var(--neon-cyan); 
-            padding: 12px; font-family: 'Rajdhani'; font-weight: bold;
-            clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);
-            text-transform: uppercase; font-size: 0.8rem;
-        }
+/* LOGIN */
+#login-stage{
+  position:fixed;
+  inset:0;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:rgba(0,0,0,0.7);
+  z-index:10;
+}
 
-        .terminal-mobile {
-            font-family: monospace; font-size: 0.7rem; color: var(--neon-green);
-            background: rgba(0,0,0,0.8); padding: 10px; height: 80px; overflow-y: auto;
-            border: 1px solid rgba(0, 255, 136, 0.2);
-        }
+.login-box{
+  width:90%;
+  max-width:420px;
+  padding:20px;
+  background:rgba(10,20,35,0.95);
+  border:1px solid rgba(0,234,255,0.3);
+  border-radius:12px;
+  position:relative;
+  overflow:hidden;
+}
 
-        footer { 
-            padding: 20px; text-align: center; font-size: 0.6rem; 
-            font-family: 'Orbitron'; opacity: 0.5; border-top: 1px solid rgba(0, 234, 255, 0.1);
-        }
+.login-title{
+  text-align:center;
+  font-family:'Orbitron';
+  color:var(--red);
+  margin-bottom:10px;
+}
 
-        #fugu-alert {
-            position: fixed; top: 20%; left: 5%; width: 90%;
-            background: #1a0505; border: 2px solid var(--neon-red);
-            padding: 20px; z-index: 2000; text-align: center; display: none;
-        }
-    </style>
+/* INPUTS */
+input{
+  width:100%;
+  padding:14px;
+  margin:10px 0;
+  background:black;
+  border:1px solid #222;
+  color:white;
+}
+
+button{
+  width:100%;
+  padding:14px;
+  background:var(--cyan);
+  border:none;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+/* BIOMETRIC OVERLAY */
+#bio-scan{
+  position:absolute;
+  inset:0;
+  display:none;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  background:black;
+  z-index:20;
+}
+
+.scan-ring{
+  width:120px;
+  height:120px;
+  border-radius:50%;
+  border:2px solid var(--cyan);
+  margin-bottom:20px;
+  position:relative;
+}
+
+.scan-line{
+  width:160px;
+  height:2px;
+  background:var(--cyan);
+  position:absolute;
+  animation:scan 2s infinite;
+}
+
+@keyframes scan{
+  0%{transform:translateY(-50px)}
+  50%{transform:translateY(50px)}
+  100%{transform:translateY(-50px)}
+}
+
+/* APP */
+#app{
+  height:100vh;
+  display:none;
+  flex-direction:column;
+}
+
+#viewport{
+  flex:1;
+  display:flex;
+  overflow-x:auto;
+  scroll-snap-type:x mandatory;
+}
+
+.panel{
+  min-width:100%;
+  padding:16px;
+  scroll-snap-align:start;
+  opacity:0;
+  transform:scale(1.05);
+  transition:0.5s;
+}
+
+.panel.active{
+  opacity:1;
+  transform:scale(1);
+}
+
+.title{
+  text-align:center;
+  font-family:'Orbitron';
+  margin:10px 0;
+}
+
+.card{
+  background:rgba(0,0,0,0.4);
+  padding:14px;
+  border:1px solid rgba(0,234,255,0.2);
+  border-radius:10px;
+}
+
+/* NAV */
+#nav{
+  display:flex;
+  justify-content:space-around;
+  padding:10px;
+  border-top:1px solid rgba(0,234,255,0.2);
+  background:black;
+}
+
+#nav button{
+  background:none;
+  color:var(--cyan);
+  border:1px solid var(--cyan);
+  font-size:0.6rem;
+}
+
+</style>
 </head>
+
 <body>
 
-    <div id="login-stage">
-        <div class="login-box">
-            <h1 style="font-family: 'Orbitron'; font-size: 1rem; color: var(--neon-red); margin-bottom: 20px;">DEFENSE LINK v.4</h1>
-            <div class="team-selector">
-                <div class="team-btn">A</div>
-                <div class="team-btn">B</div>
-                <div class="team-btn active">C</div>
-                <div class="team-btn">D</div>
-                <div class="team-btn">E</div>
-            </div>
-            <input type="text" placeholder="NEURAL_ID">
-            <input type="password" placeholder="PASS_KEY">
-            <button class="hud-btn" style="width: 100%; margin-top: 10px;" onclick="startLogin()">INITIALIZE LINK</button>
-        </div>
-    </div>
+<div id="corrupt-overlay"></div>
 
-    <div id="loading-stage">
-        <div style="font-family: 'Orbitron'; font-size: 0.8rem;">SYNCING NEURAL INTERFACE</div>
-        <div class="progress-container"><div id="progress-bar"></div></div>
-    </div>
+<!-- LOGIN -->
+<div id="login-stage">
 
-    <main id="hud-container">
-        <div class="header-mobile">
-            <h1>CYBER-BIO HUD</h1>
-        </div>
+<div class="login-box">
 
-        <div class="glass-panel">
-            <h3>BIOMETRIC STATUS</h3>
-            <span>NEURAL SYNC</span>
-            <div class="bar-bg"><div class="bar-fill"></div></div>
-            <span>STRESS LEVEL</span>
-            <div class="bar-bg"><div class="bar-fill red"></div></div>
-        </div>
+<div class="login-title">DEFENSE LINK</div>
 
-        <div class="viewport-mobile">
-            <div id="radar-container">
-                <div class="radar-sweep"></div>
-                <div style="position: absolute; top: 30%; left: 60%; width: 6px; height: 6px; background: #ffcc00; border-radius: 50%; box-shadow: 0 0 10px #ffcc00;"></div>
-            </div>
-            <div style="position: absolute; top: 10px; left: 10px; font-size: 0.6rem;">GRID_REF: 44.02 // NW</div>
-        </div>
+<!-- BIOMETRIC -->
+<div id="bio-scan">
+  <div class="scan-ring"></div>
+  <div class="scan-line"></div>
+  <div id="scan-text">BIOMETRIC SCAN...</div>
+</div>
 
-        <div class="terminal-mobile" id="term">
-            > CONNECTION ESTABLISHED...<br>
-            > SCANNING LOCAL PERIMETER...<br>
-            > 1 ENTITY DETECTED (NEUTRAL)
-        </div>
+<input id="user" placeholder="USERNAME">
+<input id="pass" type="password" placeholder="PASSWORD">
 
-        <div class="btn-grid">
-            <button class="hud-btn" onclick="alert('SCANNING...')">AREA SCAN</button>
-            <button class="hud-btn" onclick="triggerAlert()">EMERGENCY</button>
-            <button class="hud-btn">COMMS</button>
-            <button class="hud-btn" onclick="location.reload()">LOGOUT</button>
-        </div>
+<button onclick="login()">LOGIN</button>
 
-        <footer>
-            LINK_STABILITY: 98.4% // ENCRYPTION: AES-512<br>
-            © 2024 DEFENSETRAK MOBILE
-        </footer>
-    </main>
+</div>
+</div>
 
-    <div id="fugu-alert">
-        <h2 style="color: var(--neon-red); font-family: 'Orbitron';">CRITICAL BREACH</h2>
-        <p>SYSTEM INTEGRITY COMPROMISED</p>
-        <button class="hud-btn" style="border-color: var(--neon-red); color: var(--neon-red);" onclick="this.parentElement.style.display='none'">PURGE ERROR</button>
-    </div>
+<!-- APP -->
+<div id="app">
 
-    <script>
-        function startLogin() {
-            document.getElementById('login-stage').style.display = 'none';
-            document.getElementById('loading-stage').style.display = 'flex';
-            
-            let bar = document.getElementById('progress-bar');
-            let width = 0;
-            let interval = setInterval(() => {
-                if (width >= 100) {
-                    clearInterval(interval);
-                    document.getElementById('loading-stage').style.display = 'none';
-                    document.getElementById('hud-container').style.display = 'flex';
-                } else {
-                    width += 2;
-                    bar.style.width = width + '%';
-                }
-            }, 30);
-        }
+<div id="viewport">
 
-        function triggerAlert() {
-            document.getElementById('fugu-alert').style.display = 'block';
-            let term = document.getElementById('term');
-            term.innerHTML += "<br><span style='color:red'>> WARNING: SECURITY BREACH DETECTED</span>";
-            term.scrollTop = term.scrollHeight;
-        }
-    </script>
+<div class="panel active">
+<div class="title">STATUS</div>
+<div class="card" id="log"></div>
+</div>
+
+<div class="panel">
+<div class="title">RADAR</div>
+<div class="card">RADAR ONLINE</div>
+</div>
+
+<div class="panel">
+<div class="title">SYSTEMS</div>
+<div class="card">NEURAL / BIO / CORE</div>
+</div>
+
+</div>
+
+<div id="nav">
+<button onclick="go(0)">STAT</button>
+<button onclick="go(1)">RADAR</button>
+<button onclick="go(2)">SYS</button>
+</div>
+
+</div>
+
+<script>
+
+/* LOGIN + BIOMETRIC FLOW */
+function login(){
+
+  let u = document.getElementById("user").value;
+  let p = document.getElementById("pass").value;
+
+  if(!u || !p){
+    alert("ACCESS DENIED");
+    return;
+  }
+
+  let bio = document.getElementById("bio-scan");
+  bio.style.display="flex";
+
+  let txt = document.getElementById("scan-text");
+
+  setTimeout(()=> txt.innerText="VERIFYING IDENTITY...", 800);
+  setTimeout(()=> txt.innerText="MATCH FOUND", 1800);
+  setTimeout(()=> txt.innerText="ACCESS GRANTED", 2800);
+
+  setTimeout(()=>{
+    document.getElementById("login-stage").style.display="none";
+    document.getElementById("app").style.display="flex";
+    boot();
+  },3400);
+}
+
+/* SWIPE */
+function go(i){
+  document.getElementById("viewport")
+  .scrollTo({left:window.innerWidth*i,behavior:"smooth"});
+}
+
+/* BOOT LOG */
+function boot(){
+  const log = document.getElementById("log");
+
+  let lines = [
+    "SYSTEM INIT...",
+    "NEURAL LINK OK",
+    "SECURITY ACTIVE",
+    "WARNING: INSTABILITY DETECTED"
+  ];
+
+  let i=0;
+
+  let t = setInterval(()=>{
+    if(i>=lines.length) return clearInterval(t);
+    log.innerHTML += lines[i]+"<br>";
+    i++;
+  },500);
+}
+
+/* CORRUPTION EVENTS */
+function corrupt(){
+  document.body.classList.add("corruption");
+  document.getElementById("corrupt-overlay").style.opacity="1";
+
+  setTimeout(()=>{
+    document.body.classList.remove("corruption");
+    document.getElementById("corrupt-overlay").style.opacity="0";
+  },800);
+}
+
+setInterval(()=>{
+  if(Math.random()>0.7) corrupt();
+},4000);
+
+</script>
+
 </body>
 </html>
