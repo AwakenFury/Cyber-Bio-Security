@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>CYBER HUD OS</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+
+:root{
+  --cyan:#00eaff;
+  --red:#ff3b3b;
+  --green:#00ff88;
+}
+
+*{
+  box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
+}
+
+html,body{
+  margin:0;
+  height:100%;
+  overflow:hidden;
+  font-family:'Rajdhani',sans-serif;
+  background:#030712;
+  color:var(--cyan);
+}
+
+/* BACKGROUND */
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  background:radial-gradient(circle at center, rgba(0,234,255,0.08), transparent 60%);
+  pointer-events:none;
+}
+
+body::after{
+  content:"";
+  position:fixed;
+  inset:0;
+  background:linear-gradient(rgba(255,255,255,0.02) 50%, rgba(0,0,0,0.2) 50%);
+  background-size:100% 4px;
+  pointer-events:none;
+}
+
+/* CORRUPTION */
+.corruption{
+  animation:shake 0.12s infinite;
+  filter:contrast(1.3) saturate(1.5);
+}
+
+@keyframes shake{
+  0%{transform:translate(0,0)}
+  25%{transform:translate(-2px,1px)}
+  50%{transform:translate(2px,-1px)}
+  75%{transform:translate(-1px,0)}
+  100%{transform:translate(0,0)}
+}
+
+#corrupt-overlay{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  background:repeating-linear-gradient(
+    0deg,
+    rgba(255,0,0,0.05),
+    rgba(0,0,0,0.05) 2px
+  );
+  opacity:0;
+  z-index:9999;
+}
+
+/* LOGIN */
+#login-stage{
+  position:fixed;
+  inset:0;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:rgba(0,0,0,0.7);
+  z-index:10;
+}
+
+.login-box{
+  width:90%;
+  max-width:420px;
+  padding:20px;
+  background:rgba(10,20,35,0.95);
+  border:1px solid rgba(0,234,255,0.3);
+  border-radius:12px;
+  position:relative;
+  overflow:hidden;
+}
+
+.login-title{
+  text-align:center;
+  font-family:'Orbitron';
+  color:var(--red);
+  margin-bottom:10px;
+}
+
+/* INPUTS */
+input{
+  width:100%;
+  padding:14px;
+  margin:10px 0;
+  background:black;
+  border:1px solid #222;
+  color:white;
+}
+
+button{
+  width:100%;
+  padding:14px;
+  background:var(--cyan);
+  border:none;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+/* BIOMETRIC OVERLAY */
+#bio-scan{
+  position:absolute;
+  inset:0;
+  display:none;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  background:black;
+  z-index:20;
+}
+
+.scan-ring{
+  width:120px;
+  height:120px;
+  border-radius:50%;
+  border:2px solid var(--cyan);
+  margin-bottom:20px;
+  position:relative;
+}
+
+.scan-line{
+  width:160px;
+  height:2px;
+  background:var(--cyan);
+  position:absolute;
+  animation:scan 2s infinite;
+}
+
+@keyframes scan{
+  0%{transform:translateY(-50px)}
+  50%{transform:translateY(50px)}
+  100%{transform:translateY(-50px)}
+}
+
+/* APP */
+#app{
+  height:100vh;
+  display:none;
+  flex-direction:column;
+}
+
+#viewport{
+  flex:1;
+  display:flex;
+  overflow-x:auto;
+  scroll-snap-type:x mandatory;
+}
+
+.panel{
+  min-width:100%;
+  padding:16px;
+  scroll-snap-align:start;
+  opacity:0;
+  transform:scale(1.05);
+  transition:0.5s;
+}
+
+.panel.active{
+  opacity:1;
+  transform:scale(1);
+}
+
+.title{
+  text-align:center;
+  font-family:'Orbitron';
+  margin:10px 0;
+}
+
+.card{
+  background:rgba(0,0,0,0.4);
+  padding:14px;
+  border:1px solid rgba(0,234,255,0.2);
+  border-radius:10px;
+}
+
+/* NAV */
+#nav{
+  display:flex;
+  justify-content:space-around;
+  padding:10px;
+  border-top:1px solid rgba(0,234,255,0.2);
+  background:black;
+}
+
+#nav button{
+  background:none;
+  color:var(--cyan);
+  border:1px solid var(--cyan);
+  font-size:0.6rem;
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="corrupt-overlay"></div>
+
+<!-- LOGIN -->
+<div id="login-stage">
+
+<div class="login-box">
+
+<div class="login-title">DEFENSE LINK</div>
+
+<!-- BIOMETRIC -->
+<div id="bio-scan">
+  <div class="scan-ring"></div>
+  <div class="scan-line"></div>
+  <div id="scan-text">BIOMETRIC SCAN...</div>
+</div>
+
+<input id="user" placeholder="USERNAME">
+<input id="pass" type="password" placeholder="PASSWORD">
+
+<button onclick="login()">LOGIN</button>
+
+</div>
+</div>
+
+<!-- APP -->
+<div id="app">
+
+<div id="viewport">
+
+<div class="panel active">
+<div class="title">STATUS</div>
+<div class="card" id="log"></div>
+</div>
+
+<div class="panel">
+<div class="title">RADAR</div>
+<div class="card">RADAR ONLINE</div>
+</div>
+
+<div class="panel">
+<div class="title">SYSTEMS</div>
+<div class="card">NEURAL / BIO / CORE</div>
+</div>
+
+</div>
+
+<div id="nav">
+<button onclick="go(0)">STAT</button>
+<button onclick="go(1)">RADAR</button>
+<button onclick="go(2)">SYS</button>
+</div>
+
+</div>
+
+<script>
+
+/* LOGIN + BIOMETRIC FLOW */
+function login(){
+
+  let u = document.getElementById("user").value;
+  let p = document.getElementById("pass").value;
+
+  if(!u || !p){
+    alert("ACCESS DENIED");
+    return;
+  }
+
+  let bio = document.getElementById("bio-scan");
+  bio.style.display="flex";
+
+  let txt = document.getElementById("scan-text");
+
+  setTimeout(()=> txt.innerText="VERIFYING IDENTITY...", 800);
+  setTimeout(()=> txt.innerText="MATCH FOUND", 1800);
+  setTimeout(()=> txt.innerText="ACCESS GRANTED", 2800);
+
+  setTimeout(()=>{
+    document.getElementById("login-stage").style.display="none";
+    document.getElementById("app").style.display="flex";
+    boot();
+  },3400);
+}
+
+/* SWIPE */
+function go(i){
+  document.getElementById("viewport")
+  .scrollTo({left:window.innerWidth*i,behavior:"smooth"});
+}
+
+/* BOOT LOG */
+function boot(){
+  const log = document.getElementById("log");
+
+  let lines = [
+    "SYSTEM INIT...",
+    "NEURAL LINK OK",
+    "SECURITY ACTIVE",
+    "WARNING: INSTABILITY DETECTED"
+  ];
+
+  let i=0;
+
+  let t = setInterval(()=>{
+    if(i>=lines.length) return clearInterval(t);
+    log.innerHTML += lines[i]+"<br>";
+    i++;
+  },500);
+}
+
+/* CORRUPTION EVENTS */
+function corrupt(){
+  document.body.classList.add("corruption");
+  document.getElementById("corrupt-overlay").style.opacity="1";
+
+  setTimeout(()=>{
+    document.body.classList.remove("corruption");
+    document.getElementById("corrupt-overlay").style.opacity="0";
+  },800);
+}
+
+setInterval(()=>{
+  if(Math.random()>0.7) corrupt();
+},4000);
+
+</script>
+
+</body>
+</html>
