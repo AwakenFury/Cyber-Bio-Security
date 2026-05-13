@@ -4,7 +4,7 @@
 # 🧠 Cyber-Bio Security System
 
 <p align="center">
-  <img src="./assets/BioTech_Firewall.png" width="700"/>
+  <img src="BioTech_Firewall.png" width="700"/>
 </p>
 
 <p align="center">
