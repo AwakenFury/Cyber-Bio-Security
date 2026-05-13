@@ -1,6 +1,10 @@
 ![Status](https://img.shields.io/badge/status-experimental-red)
 ![ESP32](https://img.shields.io/badge/platform-ESP32-blue)
 
+
+![Grounding-Calibration-Console](asset/BioTech_Firewall.png)
+
+
 # 🧠 Cyber-Bio Security System
 
 <p align="center">
