@@ -6,6 +6,18 @@
 
 #include <WiFi.h>
 #include "esp_wifi.h"
+#include "esp_wifi_types.h"
+
+#define MAX_STA_DEVICES 10
+
+struct STADevice {
+  String mac;
+  bool active;
+};
+
+STADevice staDevices[MAX_STA_DEVICES];
+int staDeviceCount = 0;
+
 
 #include <WebServer.h>
 #include <DNSServer.h>
@@ -124,190 +136,340 @@ volatile int wifiPulseIndex = 0;
 const char index_html[] PROGMEM = R"rawliteral(
 
 
+
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CONVERSATIONS | BIO-SYNC COMMS</title>
-    <link href="https://googleapis.com" rel="stylesheet">
-    <style>
-        :root {
-            --neon-cyan: #00eaff; --neon-red: #ff3b3b; --neon-green: #00ff88;
-            --bg-dark: #030712; --panel-bg: rgba(10, 25, 41, 0.95);
-        }
+<meta charset="UTF-8">
+<title>USB Device Inspector</title>
 
-        body {
-            margin: 0; background: var(--bg-dark); font-family: 'Rajdhani', sans-serif;
-            color: var(--neon-cyan); height: 100vh; overflow: hidden;
-            display: flex; flex-direction: column; text-transform: uppercase;
-        }
+<style>
+/* --- SCREEN STYLES (Monochrome UI) --- */
+body {
+  font-family: monospace; /* Matching the hacker/inspector look */
+  background: #000000;
+  color: #ffffff;
+  margin: 0;
+  padding: 20px;
+}
 
-        body::before {
-            content: " "; position: fixed; inset: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
-            background-size: 100% 4px; z-index: 1000; pointer-events: none;
-        }
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 15px;
+}
 
-        /* --- STAGES --- */
-        #login-stage {
-            position: absolute; inset: 0; z-index: 5000;
-            display: flex; justify-content: center; align-items: center;
-            background: radial-gradient(circle at center, #07152e 0%, #02050f 100%);
-        }
-        .login-box { width: 90%; max-width: 400px; padding: 30px; background: var(--panel-bg); border: 1px solid var(--neon-cyan); text-align: center; }
-        .team-selector { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin: 20px 0; }
-        .team-btn { padding: 10px 0; font-size: 0.5rem; background: rgba(0, 234, 255, 0.1); border: 1px solid var(--neon-cyan); color: var(--neon-cyan); cursor: pointer; }
-        .team-btn.active { background: var(--neon-cyan); color: black; font-weight: bold; }
-        input { width: 100%; padding: 12px; margin-bottom: 10px; background: black; color: white; border: 1px solid #112233; box-sizing: border-box; font-family: 'Rajdhani'; }
+.panel {
+  background: transparent;
+  padding: 15px;
+  border: 1px solid #333;
+}
 
-        #loading-stage { display: none; position: absolute; inset: 0; z-index: 4000; flex-direction: column; justify-content: center; align-items: center; background: var(--bg-dark); }
-        #hud-container { display: none; height: 100vh; grid-template-columns: 320px 1fr 320px; grid-template-rows: 80px 1fr 150px; gap: 15px; padding: 20px; box-sizing: border-box; }
+h2, h3 {
+  margin-top: 0;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
 
-        .glass-panel { background: rgba(0, 0, 0, 0.4); border-left: 2px solid var(--neon-cyan); padding: 15px; }
-        .terminal-output { flex: 1; padding: 15px; font-size: 0.85rem; color: var(--neon-green); overflow-y: auto; background: rgba(0,0,0,0.3); border: 1px solid rgba(0, 234, 255, 0.1); }
+h3 {
+  color: #fff;
+  border-bottom: 1px solid #333;
+  padding-bottom: 5px;
+}
 
-        /* --- BIOSYNC CHAT MODAL --- */
-        #biosync-modal {
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 90%; max-width: 450px; height: 500px; background: var(--panel-bg);
-            border: 2px solid var(--neon-cyan); z-index: 6000; display: none;
-            flex-direction: column; box-shadow: 0 0 50px rgba(0, 234, 255, 0.3);
-        }
-        .chat-header { padding: 15px; border-bottom: 1px solid var(--neon-cyan); font-family: 'Orbitron'; font-size: 0.8rem; display: flex; justify-content: space-between; }
-        #chat-window { flex: 1; overflow-y: auto; padding: 15px; font-size: 0.8rem; display: flex; flex-direction: column; gap: 10px; }
-        .msg { padding: 8px; border-left: 2px solid var(--neon-cyan); background: rgba(255,255,255,0.03); }
-        .msg.peer { border-left-color: var(--neon-green); color: var(--neon-green); }
-        .chat-input-area { display: flex; padding: 10px; border-top: 1px solid rgba(0, 234, 255, 0.2); }
-        .chat-input-area input { flex: 1; margin: 0; border: none; background: transparent; color: white; padding: 10px; }
+button {
+  padding: 10px 14px;
+  margin: 5px;
+  border: 1px solid #fff;
+  border-radius: 0px;
+  cursor: pointer;
+  background: transparent;
+  color: #fff;
+  font-family: monospace;
+  transition: 0.2s;
+}
 
-        #fugu-alert { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 450px; background: rgba(20, 5, 5, 0.98); border: 2px solid var(--neon-red); padding: 30px; display: none; z-index: 7000; text-align: center; }
+button:hover {
+  background: #fff;
+  color: #000;
+}
 
-        .hud-btn { background: transparent; border: 1px solid var(--neon-cyan); color: var(--neon-cyan); padding: 10px; cursor: pointer; text-transform: uppercase; font-family: 'Rajdhani'; font-weight: bold; }
-        @media (max-width: 900px) { #hud-container { display: flex; flex-direction: column; overflow-y: auto; height: auto; } }
-    </style>
+#disconnect { border-color: #666; color: #666; }
+#disconnect:hover { background: #666; color: #000; }
+
+.box, .logbox {
+  background: transparent;
+  padding: 10px;
+  border: 1px solid #333;
+  margin-top: 10px;
+}
+
+.logbox {
+  height: 260px;
+  overflow: auto;
+  font-size: 13px;
+  line-height: 1.5;
+  border-color: #222;
+  color: #888;
+}
+
+.status {
+  padding: 8px;
+  border: 1px solid #fff;
+  text-align: center;
+  background: transparent;
+  text-transform: uppercase;
+  font-weight: bold;
+}
+
+.on { background: #fff !important; color: #000 !important; }
+.off { border-style: dashed; color: #666; border-color: #666; }
+
+.row {
+  padding: 8px;
+  border-bottom: 1px solid #222;
+}
+
+/* --- PRINT STYLES --- */
+@media print {
+  body { background: #fff !important; color: #000 !important; }
+  .panel, .box, .logbox { border: 1px solid #000 !important; }
+  button { display: none !important; }
+  h3 { border-bottom: 2px solid #000 !important; color: #000 !important; }
+  .status.on { background: #000 !important; color: #fff !important; }
+  .logbox { color: #000 !important; height: auto !important; overflow: visible !important; }
+}
+</style>
 </head>
-<body id="main-body">
 
-    <!-- LOGIN -->
-    <div id="login-stage">
-        <div class="login-box">
-            <h1 style="color: var(--neon-red); letter-spacing: 5px;">DEFENSE LINK</h1>
-            <div class="team-selector">
-                <button class="team-btn" onclick="selectTeam(this)">ALPHA</button>
-                <button class="team-btn" onclick="selectTeam(this)">BRAVO</button>
-                <button class="team-btn active" onclick="selectTeam(this)">CHARLIE</button>
-                <button class="team-btn" onclick="selectTeam(this)">DELTA</button>
-                <button class="team-btn" onclick="selectTeam(this)">ECHO</button>
-            </div>
-            <input type="text" id="username" placeholder="OPERATOR_ID: AWAKEN_FURY">
-            <input type="password" placeholder="ACCESS_KEY">
-            <button class="hud-btn" style="width: 100%;" onclick="startLogin()">SECURE LOGIN</button>
-        </div>
-    </div>
+<body>
 
-    <!-- LOADING -->
-    <div id="loading-stage">
-        <h2 style="font-family: 'Orbitron';">SYNCING TEAM FREQUENCY...</h2>
-    </div>
+<h2>🔍 Inspector Mode Upgrade</h2>
 
-    <!-- HUD -->
-    <div id="hud-container">
-        <div style="grid-column: 2; text-align: center; font-family: 'Orbitron'; font-size: 1.5rem;">CONVERSATIONS</div>
-        
-        <div class="left-col" style="grid-row: 2; display: flex; flex-direction: column; gap: 10px;">
-            <div class="glass-panel"><h3>SQUAD STATUS</h3><div id="team-info">TEAM: CHARLIE</div></div>
-        </div>
+<div class="grid">
 
-        <div class="center-viewport" style="grid-row: 2; display: flex; flex-direction: column;">
-            <div class="terminal-output" id="main-terminal"></div>
-        </div>
+<!-- LEFT -->
+<div class="panel">
 
-        <div class="right-col" style="grid-row: 2; display: flex; flex-direction: column; gap: 10px;">
-            <div class="glass-panel">
-                <h3>SUB-SYSTEMS</h3>
-                <button class="hud-btn" style="width:100%;" onclick="openBioSync()">BIO-SYNC COMMS</button>
-            </div>
-        </div>
-    </div>
+<h3>Status</h3>
+<div id="status" class="status off">Disconnected</div>
 
-    <!-- BIOSYNC TEXTING MODAL -->
-    <div id="biosync-modal">
-        <div class="chat-header">
-            <span>BIO-SYNC: <span id="chat-team-label"></span> FREQUENCY</span>
-            <span style="cursor:pointer" onclick="closeBioSync()">[X]</span>
-        </div>
-        <div id="chat-window"></div>
-        <div class="chat-input-area">
-            <input type="text" id="chat-input" placeholder="Type message..." onkeypress="if(event.key==='Enter') sendMsg()">
-            <button class="hud-btn" onclick="sendMsg()">SEND</button>
-        </div>
-    </div>
+<h3>Controls</h3>
+<button id="connect" onclick="connectPort()">Connect Device</button>
+<button id="disconnect" onclick="disconnectPort()">Disconnect</button>
+<button id="export" onclick="exportCSV()">Export CSV</button>
 
-    <!-- FUGU ALERT -->
-    <div id="fugu-alert">
-        <h3 style="color: var(--neon-red);">⚠ BREACH DETECTED</h3>
-        <div id="fugu-text" style="color: white; margin-bottom: 20px;"></div>
-        <button class="hud-btn" style="border-color: var(--neon-red); color: var(--neon-red);" onclick="this.parentElement.style.display='none'">CLOSE</button>
-    </div>
+<h3>Current Device</h3>
+<div id="deviceBox" class="box">
+No device connected
+</div>
 
-    <script>
-        let selectedTeam = "CHARLIE";
-        let user = "AWAKEN_FURY";
+<h3>Trust Rating</h3>
+<div id="trustBox" class="box">
+--
+</div>
 
-        // Simulated database of messages
-        const teamMessages = { "ALPHA": [], "BRAVO": [], "CHARLIE": [], "DELTA": [], "ECHO": [] };
+</div>
 
-        function selectTeam(btn) {
-            document.querySelectorAll('.team-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            selectedTeam = btn.innerText;
+<!-- RIGHT -->
+<div class="panel">
+
+<h3>Known Devices Seen</h3>
+<div id="historyBox" class="box">
+None
+</div>
+
+<h3 style="margin-top:20px;">Inspector Logs</h3>
+<div id="logBox" class="logbox"></div>
+
+</div>
+
+</div>
+
+<script>
+let port = null;
+let devices = [];
+let logs = [];
+
+let knownSTA = {};
+
+
+async function pollESP32(){
+
+  try{
+
+    let res = await fetch("/status");
+
+    let data = await res.json();
+
+    if(data.devices){
+
+      data.devices.forEach(dev => {
+
+        if(!knownSTA[dev.mac]){
+
+          knownSTA[dev.mac] = true;
+
+          let record = {
+            timestamp: new Date().toLocaleString(),
+            vid: "WIFI",
+            pid: "STA",
+            chip: "WiFi Client",
+            trust: "NETWORK DEVICE",
+            mac: dev.mac
+          };
+
+          devices.push(record);
+
+          renderHistory();
+
+          addLog("STA Connected: " + dev.mac);
+        }
+      });
+    }
+
+  }catch(e){
+
+    addLog("ESP32 status offline");
+  }
+}
+
+setInterval(pollESP32, 2000);
+
+
+
+function addLog(msg){
+  let ts = new Date().toLocaleTimeString();
+  logs.push({ timestamp: ts, message: msg });
+  let box = document.getElementById("logBox");
+  box.innerHTML += "[" + ts + "] " + msg + "<br>";
+  box.scrollTop = box.scrollHeight;
+}
+
+function setStatus(on){
+  let el = document.getElementById("status");
+  el.className = "status " + (on ? "on":"off");
+  el.innerText = on ? "Connected":"Disconnected";
+}
+
+async function connectPort(){
+  try{
+    port = await navigator.serial.requestPort();
+    await port.open({ baudRate:115200 });
+
+    let info = port.getInfo();
+    let vid = info.usbVendorId || 0;
+    let pid = info.usbProductId || 0;
+
+    let chip = detectChip(vid,pid);
+    let trust = trustLevel(chip);
+
+    let record = {
+      timestamp: new Date().toLocaleString(),
+      vid: vid,
+      pid: pid,
+      chip: chip,
+      trust: trust
+    };
+
+    devices.push(record);
+    showDevice(record);
+    renderHistory();
+    setStatus(true);
+
+    addLog("USB connected: " + chip);
+  }catch(e){
+    addLog("Connection failed");
+  }
+}
+
+async function disconnectPort(){
+  try{
+    if(port){
+      await port.close();
+      port = null;
+    }
+    setStatus(false);
+    addLog("USB disconnected");
+  }catch(e){
+    addLog("Disconnect error");
+  }
+}
+
+function detectChip(vid,pid){
+  if(vid === 4292) return "CP2102 Silicon Labs";
+  if(vid === 6790) return "CH340 WCH";
+  if(vid === 1027) return "FTDI FT232";
+  if(vid === 3034) return "Espressif Native USB";
+  return "Unknown Device (VID:"+vid+")";
+}
+
+function trustLevel(chip){
+  if(chip.includes("Espressif")) return "TRUSTED: ESP32 SOURCE";
+  if(chip.includes("CP2102")) return "PROBABLE: DEV BOARD";
+  return "CAUTION: UNVERIFIED CHIPSET";
+}
+
+function showDevice(d){
+  document.getElementById("deviceBox").innerHTML = `
+    <b>TIME:</b> ${d.timestamp}<br>
+    <b>VID:</b> ${d.vid} | <b>PID:</b> ${d.pid}<br>
+    <b>CHIP:</b> ${d.chip}
+  `;
+  document.getElementById("trustBox").innerHTML = d.trust;
+}
+
+
+function renderHistory(){
+
+  let html = "";
+
+  devices.slice().reverse().forEach(d => {
+
+    html += `
+      <div class="row">
+        ${d.chip}<br>
+
+        <small>
+        VID:${d.vid}
+        PID:${d.pid}
+        </small><br>
+
+        ${d.mac ?
+          "<small>MAC: " + d.mac + "</small><br>"
+          : ""
         }
 
-        function startLogin() {
-            user = document.getElementById('username').value || "OPERATOR";
-            document.getElementById('login-stage').style.display = 'none';
-            document.getElementById('loading-stage').style.display = 'flex';
-            setTimeout(() => {
-                document.getElementById('loading-stage').style.display = 'none';
-                document.getElementById('hud-container').style.display = 'grid';
-                document.getElementById('team-info').innerText = "TEAM: " + selectedTeam;
-                document.getElementById('chat-team-label').innerText = selectedTeam;
-                
-                // Add an initial greeting from a peer
-                teamMessages[selectedTeam].push({sender: "SYSTEM", text: "Team frequency " + selectedTeam + " established."});
-                teamMessages[selectedTeam].push({sender: "OPERATOR_02", text: "I'm in position. Sector 7 looks dark.", type: "peer"});
-            }, 2000);
-        }
+        <small>${d.timestamp}</small>
+      </div>
+    `;
+  });
 
-        function openBioSync() {
-            const win = document.getElementById('chat-window');
-            win.innerHTML = '';
-            teamMessages[selectedTeam].forEach(m => {
-                const div = document.createElement('div');
-                div.className = "msg " + (m.type || "");
-                div.innerHTML = `<strong>[${m.sender}]</strong>: ${m.text}`;
-                win.appendChild(div);
-            });
-            document.getElementById('biosync-modal').style.display = 'flex';
-        }
+  document.getElementById("historyBox").innerHTML =
+    html || "None";
+}
 
-        function sendMsg() {
-            const input = document.getElementById('chat-input');
-            if(!input.value) return;
-            
-            const newMsg = { sender: user, text: input.value };
-            teamMessages[selectedTeam].push(newMsg);
-            
-            openBioSync(); // Refresh window
-            input.value = '';
-            document.getElementById('chat-window').scrollTop = 9999;
-        }
 
-        function closeBioSync() { document.getElementById('biosync-modal').style.display = 'none'; }
-    </script>
+function exportCSV(){
+  if(devices.length === 0) return alert("No history");
+  let csv = "Timestamp,VID,PID,Chipset,Trust\n";
+  devices.forEach(d=>{
+    csv += `"${d.timestamp}",${d.vid},${d.pid},"${d.chip}","${d.trust}"\n`;
+  });
+  let blob = new Blob([csv], {type:"text/csv"});
+  let a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "usb_inspector_report.csv";
+  a.click();
+  addLog("CSV Report exported");
+}
+</script>
+
 </body>
 </html>
+
 
 
 
@@ -574,6 +736,36 @@ void drawDashboard() {
   drawS("STATUS:", 20, 340, WHITE, 2);
 }
 
+
+
+
+void updateStations() {
+
+  wifi_sta_list_t wifi_sta_list;
+
+  esp_wifi_ap_get_sta_list(&wifi_sta_list);
+
+  staDeviceCount = wifi_sta_list.num;
+
+  for(int i = 0; i < wifi_sta_list.num; i++) {
+
+    char macStr[18];
+
+    sprintf(
+      macStr,
+      "%02X:%02X:%02X:%02X:%02X:%02X",
+      wifi_sta_list.sta[i].mac[0],
+      wifi_sta_list.sta[i].mac[1],
+      wifi_sta_list.sta[i].mac[2],
+      wifi_sta_list.sta[i].mac[3],
+      wifi_sta_list.sta[i].mac[4],
+      wifi_sta_list.sta[i].mac[5]
+    );
+
+    staDevices[i].mac = String(macStr);
+    staDevices[i].active = true;
+  }
+}
 // ======================================================
 // SETUP
 // ======================================================
@@ -708,13 +900,27 @@ netStatus = "AP ACTIVE";
 
   json += "\"ip\":\"" + ipAddress + "\",";
   json += "\"net\":\"" + netStatus + "\",";
-  json += "\"sta\":" + String(staCount);
+  json += "\"sta\":" + String(staCount) + ",";
+
+  // DEVICES ARRAY
+  json += "\"devices\":[";
+
+  for(int i=0;i<staDeviceCount;i++) {
+
+    json += "{";
+    json += "\"mac\":\"" + staDevices[i].mac + "\"";
+    json += "}";
+
+    if(i < staDeviceCount - 1)
+      json += ",";
+  }
+
+  json += "]";
 
   json += "}";
 
   server.send(200, "application/json", json);
 });
-  
 
   // Captive Portal
 
@@ -754,7 +960,9 @@ void loop() {
 // NETWORK STATUS UPDATE
 // ======================================================
 
-staCount = WiFi.softAPgetStationNum();
+updateStations();
+
+staCount = staDeviceCount;
 
 if(staCount > 0) {
   netStatus = "CONNECTED";
@@ -822,10 +1030,15 @@ udp.write((const uint8_t*)"PING", 4);
 
     // Clear Values
 
-    fill(150,110,140,30,BLACK);
-    fill(150,180,140,30,BLACK);
-    fill(150,250,140,30,BLACK);
-    fill(150,330,160,40,BLACK);
+// Clear Values
+
+fill(150,110,140,30,BLACK); // WIFI
+fill(150,180,140,30,BLACK); // EMG
+fill(150,250,140,30,BLACK); // MOVE
+fill(150,330,160,40,BLACK); // STATUS
+
+// CLEAR LOWER NETWORK AREA
+fill(80,370,240,120,BLACK);
 
     // Draw Values
 
@@ -838,8 +1051,8 @@ drawS("NET:", 20, 420, WHITE, 2);
 drawS(netStatus.c_str(), 90, 420, GREEN, 2);
 
 // STA COUNT
-drawS("STA:", 20, 460, WHITE, 2);
-drawV(staCount, 90, 460, GREEN, 2);
+drawS("STA:", 20, 445, WHITE, 2);
+drawV(staCount, 90, 445, GREEN, 2);
 
 
     drawV(
