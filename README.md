@@ -7,13 +7,8 @@
 
 # 🧠 Cyber-Bio Security System
 
-<p align="center">
-  <img src="BioTech_Firewall.png" width="700"/>
-</p>
+A real-time cyber-biological visualization engine integrating human signals, smart environments, and network security.</b>
 
-<p align="center">
-  <b>A real-time cyber-biological visualization engine integrating human signals, smart environments, and network security.</b>
-</p>
 
 <p align="center">
   <a href="https://awakenfury.github.io/Cyber-Bio-Security/">
@@ -21,27 +16,24 @@
   </a>
 </p>
 
----
 
 ## 🚀 Overview
 
 The **Cyber-Bio Security System** is an experimental platform that explores the convergence of:
-
-* 🧠 Human bio-signals (EMG, EEG, GSR)
-* 🏠 Smart home environments
-* 🌐 Cybersecurity and network monitoring
+ - 🧠 Human bio-signals (EMG, EEG, GSR)
+ - 🏠 Smart home environments
+ - 🌐 Cybersecurity and network monitoring
 
 It visualizes these systems as a **unified, real-time network**, where signals flow and threats propagate across a dynamic body-map interface.
 
----
 
 ## 🧩 Key Features
 
 ### 🔹 Neural Signal Visualization
 
-* Real-time animated signal propagation
-* Supports EMG, EEG, and GSR simulation
-* Node-based body mapping
+ - Real-time animated signal propagation
+ - Supports EMG, EEG, and GSR simulation
+ - Node-based body mapping
 
 ### 🔹 Threat Propagation Engine
 
