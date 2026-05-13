@@ -29,7 +29,7 @@ It visualizes these systems as a **unified, real-time network**, where signals f
 
 ## 🧩 Key Features
 
-### 🔹 Neural Signal Visualization
+## 🔹 Neural Signal Visualization
 
  - Real-time animated signal propagation
  - Supports EMG, EEG, and GSR simulation
@@ -83,11 +83,11 @@ A continuous animation loop renders:
 ## 🔮 Future Roadmap
 
  - [ ] ESP32 + real biometric sensor integration
- - [ ] [ ] Web Serial / WebSocket live data streaming
- - [ ] [ ] AI-based anomaly detection
- - [ ] [ ] 3D visualization (Three.js / WebGL)
- - [ ] [ ] Full skeletal tracking system
- - [ ] [ ] Advanced UI controls and analytics
+ - [ ]  Web Serial / WebSocket live data streaming
+ - [ ]  AI-based anomaly detection
+ - [ ]  3D visualization (Three.js / WebGL)
+ - [ ]  Full skeletal tracking system
+ - [ ]  Advanced UI controls and analytics
 
 ---
 
