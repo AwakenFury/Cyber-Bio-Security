@@ -2,7 +2,7 @@
 ![ESP32](https://img.shields.io/badge/platform-ESP32-blue)
 
 
-![Grounding-Calibration-Console](asset/BioTech_Firewall.png)
+![Grounding-Calibration-Console](asset/BioTech_Firewall.jfj)
 
 
 # 🧠 Cyber-Bio Security System
