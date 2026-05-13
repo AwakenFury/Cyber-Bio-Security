@@ -5,7 +5,7 @@
 ![Cyber-Bio-Security](asset/BioTech_Firewall.jfif)
 
 
-<center> # 🧠 Cyber-Bio Security System </center>
+<p align="center"> # 🧠 Cyber-Bio Security System </p>
 
 <center>A real-time cyber-biological visualization engine integrating human signals, smart environments, and network security.</center>
 
