@@ -35,111 +35,71 @@ It visualizes these systems as a **unified, real-time network**, where signals f
  - Supports EMG, EEG, and GSR simulation
  - Node-based body mapping
 
-### 🔹 Threat Propagation Engine
+## 🔹 Threat Propagation Engine
 
-* Simulated threats moving through system pathways
-* Multiple threat types:
+Simulated threats moving through system pathways
+Multiple threat types:
 
-  * EM (electromagnetic)
-  * RF (wireless/network)
-  * IR (environmental)
-  * Analog (hardware-level)
+ - EM (electromagnetic)
+ - RF (wireless/network)
+ - IR (environmental)
+ - Analog (hardware-level)
 
-### 🔹 Cyberpunk Dashboard UI
+## 🔹 Cyberpunk Dashboard UI
 
-* Neon-themed control interface
-* Real-time logs and system status panels
-* Interactive simulation controls
+ - Neon-themed control interface
+ - Real-time logs and system status panels
+ - Interactive simulation controls
 
-### 🔹 Modular Architecture
+## 🔹 Modular Architecture
 
-* Expandable node + path system
-* Designed for real sensor integration (ESP32)
-* Clean separation between UI and simulation logic
+ - Expandable node + path system
+ - Designed for real sensor integration (ESP32)
+ - Clean separation between UI and simulation logic
 
----
+
 
 ## 🖥️ Live Demo
 
 👉 https://awakenfury.github.io/Cyber-Bio-Security/
 
----
 
-## 🏗️ Project Structure
-
-```bash
-Cyber-Bio-Security/
-│
-├── index.html        # Main dashboard + simulation engine
-├── README.md         # Project documentation
-└── assets/
-    └── diagram.png   # System architecture visualization
-```
-
----
-
-## ⚙️ Getting Started
-
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/AwakenFury/Cyber-Bio-Security.git
-cd Cyber-Bio-Security
-```
-
-### 2. Run locally
-
-Open the file in your browser:
-
-```bash
-open index.html
-```
-
-Or run a simple server:
-
-```bash
-python3 -m http.server
-```
-
----
-
-## 🧪 How It Works
 
 The system simulates a **cyber-biological network** using:
 
-* **Nodes** → body parts and system components
-* **Paths** → neural and network connections
-* **Signals** → normal system activity
-* **Threats** → anomalies propagating through the system
+ - **Nodes** → body parts and system components
+ - **Paths** → neural and network connections
+ - **Signals** → normal system activity
+ - **Threats** → anomalies propagating through the system
 
 A continuous animation loop renders:
 
-* Signal flow
-* Threat movement
-* System state changes
+ - Signal flow
+ - Threat movement
+ - System state changes
 
 ---
 
 ## 🔮 Future Roadmap
 
-* [ ] ESP32 + real biometric sensor integration
-* [ ] Web Serial / WebSocket live data streaming
-* [ ] AI-based anomaly detection
-* [ ] 3D visualization (Three.js / WebGL)
-* [ ] Full skeletal tracking system
-* [ ] Advanced UI controls and analytics
+ - [ ] ESP32 + real biometric sensor integration
+ - [ ] [ ] Web Serial / WebSocket live data streaming
+ - [ ] [ ] AI-based anomaly detection
+ - [ ] [ ] 3D visualization (Three.js / WebGL)
+ - [ ] [ ] Full skeletal tracking system
+ - [ ] [ ] Advanced UI controls and analytics
 
 ---
 
 ## 🎯 Use Cases
 
-* Cyber-physical system visualization
-* Biofeedback monitoring interfaces
-* Smart home security dashboards
-* Educational simulations
-* Experimental game engine concepts
+ - Cyber-physical system visualization
+ - Biofeedback monitoring interfaces
+ - Smart home security dashboards
+ - Educational simulations
+ - Experimental game engine concepts
 
----
+
 
 ## ⚠️ Disclaimer
 
@@ -147,8 +107,8 @@ This project is **experimental and conceptual**.
 
 It is intended for:
 
-* Research
-* Visualization
-* Educational purposes
+ - Research
+ - Visualization
+ - Educational purposes
 
 It is **not a production security system**.
