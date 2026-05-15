@@ -1,0 +1,209 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>BioTech | Wireless Network SOC</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --neon-cyan: #00eaff;
+    --neon-red: #ff3b3b;
+    --bg-dark: #030712;
+    --glass: rgba(10, 25, 45, 0.7);
+    --border: rgba(0, 234, 255, 0.4);
+  }
+
+  html, body {
+    margin: 0; background: var(--bg-dark);
+    font-family: 'Rajdhani', sans-serif; color: var(--neon-cyan);
+    height: 100vh; overflow: hidden; display: flex; flex-direction: column;
+  }
+
+  /* Cinematic Scanline Overlay */
+  body::before {
+    content: " "; position: fixed; inset: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
+                linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05));
+    background-size: 100% 4px, 3px 100%; z-index: 1000; pointer-events: none;
+  }
+
+  /* Grid Background */
+  #grid-bg {
+    position: fixed; inset: -50%;
+    background: linear-gradient(rgba(0, 234, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 234, 255, 0.05) 1px, transparent 1px);
+    background-size: 60px 60px; animation: drift 30s linear infinite; z-index: -1;
+  }
+  @keyframes drift { to { transform: translate(-60px, -60px); } }
+
+  header, footer {
+    height: 60px; background: rgba(0,0,0,0.8); border-bottom: 1px solid var(--neon-cyan);
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0 20px; font-family: 'Orbitron'; z-index: 100;
+  }
+  footer { border-top: 1px solid var(--neon-cyan); border-bottom: none; }
+
+  /* Navigation Buttons */
+  .nav-btn {
+    background: transparent; border: 1px solid var(--neon-cyan); color: var(--neon-cyan);
+    padding: 6px 15px; font-family: 'Orbitron'; font-size: 10px; cursor: pointer;
+    clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);
+    transition: 0.3s;
+  }
+  .nav-btn:hover { background: rgba(0, 234, 255, 0.15); box-shadow: 0 0 10px var(--neon-cyan); }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 5px; padding: 10px 20px; background: rgba(0,0,0,0.4); z-index: 100; }
+  .tab-btn {
+    background: var(--glass); border: 1px solid var(--border); color: var(--neon-cyan);
+    padding: 8px 20px; font-family: 'Orbitron'; font-size: 11px; cursor: pointer; transition: 0.3s;
+  }
+  .tab-btn.active { background: var(--neon-cyan); color: #000; border-color: #fff; }
+
+  /* Layout */
+  .tab-content { display: none; flex: 1; padding: 15px; gap: 15px; overflow: hidden; }
+  .tab-content.active { display: flex; }
+
+  .dashboard-grid { display: grid; grid-template-columns: 3fr 1.5fr; width: 100%; gap: 15px; }
+  .left-col { display: grid; grid-template-rows: 180px 1fr; gap: 15px; }
+  .top-panels { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+
+  .panel {
+    background: var(--glass); border: 1px solid var(--border);
+    border-radius: 8px; padding: 15px; backdrop-filter: blur(10px);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .scroll { overflow-y: auto; font-family: monospace; font-size: 12px; }
+  h2 { font-family: 'Orbitron'; font-size: 12px; margin: 0 0 10px 0; color: #fff; border-bottom: 1px solid rgba(0,234,255,0.2); }
+
+  /* Radar */
+  #radar-container { position: relative; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle, rgba(0,234,255,0.1), transparent); }
+  #radar { width: 350px; height: 350px; border-radius: 50%; border: 2px solid var(--neon-cyan); position: relative; box-shadow: 0 0 30px rgba(0,234,255,0.2); }
+  #sweep { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(rgba(0,234,255,0.4), transparent); animation: sweep 4s linear infinite; }
+  
+  .blip { position: absolute; width: 6px; height: 6px; border-radius: 50%; background: var(--neon-cyan); box-shadow: 0 0 8px var(--neon-cyan); }
+  .blip.alert { background: var(--neon-red); box-shadow: 0 0 8px var(--neon-red); }
+
+  /* Threat Gauge */
+  #threatGauge { height: 10px; background: #000; border-radius: 5px; margin-bottom: 10px; border: 1px solid var(--border); overflow: hidden; }
+  #threatLevel { height: 100%; width: 5%; background: var(--neon-cyan); transition: width 0.5s; }
+
+  @keyframes sweep { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div id="grid-bg"></div>
+
+<header>
+    <button class="nav-btn" onclick="window.location.href='/'">DASHBOARD</button>
+    <span>WIRELESS/NETWORK SOC</span>
+    <button class="nav-btn" onclick="window.location.href='/'">SECURE EXIT</button>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="activateTab('dashboardTab', event)">DASHBOARD</button>
+  <button class="tab-btn" onclick="activateTab('packetsTab', event)">PACKETS</button>
+  <button class="tab-btn" onclick="activateTab('incidentsTab', event)">INCIDENTS</button>
+  <button class="tab-btn" onclick="activateTab('bandsTab', event)">BANDS</button>
+</div>
+
+<!-- DASHBOARD TAB -->
+<div class="tab-content active" id="dashboardTab">
+  <div class="dashboard-grid">
+    <div class="left-col">
+      <div class="top-panels">
+        <div class="panel scroll"><h2>Wi-Fi Nodes</h2><div id="wifi"></div></div>
+        <div class="panel scroll"><h2>BLE Devices</h2><div id="ble"></div></div>
+        <div class="panel scroll"><h2>BT Sources</h2><div id="bt"></div></div>
+        <div class="panel scroll"><h2>Magnetometer</h2><div id="mag"></div></div>
+      </div>
+      <div id="radar-container" class="panel">
+        <div id="radar">
+          <div id="sweep"></div>
+          <div style="position: absolute; inset: 15%; border: 1px solid rgba(0,234,255,0.1); border-radius: 50%;"></div>
+          <div style="position: absolute; inset: 30%; border: 1px solid rgba(0,234,255,0.1); border-radius: 50%;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Network Security</h2>
+      <div id="threatGauge"><div id="threatLevel"></div></div>
+      <div id="stats" class="scroll" style="height: 100px;"></div>
+      <h2 style="margin-top:15px">Live Packet Capture</h2>
+      <div id="packets" class="scroll" style="flex:1"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SUB TABS -->
+<div class="tab-content" id="packetsTab">
+  <div class="panel scroll" style="width:100%;"><h2>Full Packet Inspection</h2><div id="packetLogs"></div></div>
+</div>
+
+<div class="tab-content" id="incidentsTab">
+  <div class="panel scroll" style="width:100%;"><h2>Security Incidents</h2><div id="incidentLogs"></div></div>
+</div>
+
+<div class="tab-content" id="bandsTab">
+  <div class="panel scroll" style="width:100%;"><h2>Band Frequency Analysis</h2><div id="bandStats"></div></div>
+</div>
+
+<footer>
+    <button class="nav-btn">IDS: ACTIVE</button>
+    <button class="nav-btn">ENCRYPTION: AES-256</button>
+    <button class="nav-btn" style="border-color: var(--neon-red); color: var(--neon-red);">THREAT: NONE</button>
+</footer>
+
+<script>
+function activateTab(id, event){
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+}
+
+function r(min,max){return Math.floor(Math.random()*(max-min+1))+min;}
+
+function updateTelemetry(){
+  // Update Sensor Panels
+  document.getElementById("wifi").innerHTML = `NODE_A: -${r(40,90)}dBm<br>NODE_B: -${r(60,85)}dBm`;
+  document.getElementById("ble").innerHTML = `TAG_77: -${r(70,95)}dBm<br>BEACON_X: -${r(30,60)}dBm`;
+  document.getElementById("bt").innerHTML = `PERIPH_1: CONNECTED<br>SCANNING...`;
+  document.getElementById("mag").innerHTML = `X: ${r(-50,50)}uT<br>Y: ${r(-50,50)}uT`;
+
+  // Update Threat Level
+  const threat = r(5, 25);
+  document.getElementById("threatLevel").style.width = threat + "%";
+  document.getElementById("stats").innerHTML = `THREAT PROBABILITY: ${threat}%<br>UPTIME: 14:22:01<br>LATENCY: 12ms`;
+
+  // Update Packets
+  const pList = document.getElementById("packets");
+  const pFull = document.getElementById("packetLogs");
+  const entry = `<div>[${new Date().toLocaleTimeString()}] TCP_HANDSHAKE: 192.168.${r(1,255)}.${r(1,255)}</div>`;
+  pList.innerHTML = entry + pList.innerHTML;
+  pFull.innerHTML = entry + pFull.innerHTML;
+  if(pList.children.length > 20) pList.removeChild(pList.lastChild);
+
+  // Radar Blips
+  spawnBlip();
+}
+
+function spawnBlip(){
+  const radar = document.getElementById("radar");
+  const b = document.createElement("div");
+  const isAlert = Math.random() > 0.9;
+  b.className = isAlert ? "blip alert" : "blip";
+  const dist = r(20, 160);
+  const ang = Math.random() * Math.PI * 2;
+  b.style.left = (175 + Math.cos(ang)*dist - 3) + "px";
+  b.style.top = (175 + Math.sin(ang)*dist - 3) + "px";
+  radar.appendChild(b);
+  setTimeout(() => b.remove(), 4000);
+}
+
+setInterval(updateTelemetry, 1500);
+</script>
+</body>
+</html>
