@@ -2,177 +2,389 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>Autonomous Bio-Cyber Neural HUD</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
 
 <style>
+
+:root{
+  --cyan:#00eaff;
+  --green:#00ff99;
+  --yellow:#ffd000;
+  --red:#ff3b3b;
+  --bg:#020305;
+}
+
 html,body{
   margin:0;
   height:100%;
   overflow:hidden;
-  font-family:'Rajdhani',sans-serif;
   background:#000;
-  color:#00eaff;
+  color:var(--cyan);
+  font-family:'Rajdhani',sans-serif;
 }
 
-/* CRT EFFECT */
+/* ===================================================== */
+/* CRT OVERLAY */
+/* ===================================================== */
+
 body::before{
   content:"";
   position:fixed;
   inset:0;
-  z-index:10;
+  z-index:50;
   pointer-events:none;
+
   background:
-    linear-gradient(rgba(0,0,0,0) 50%, rgba(0,0,0,.25) 50%),
-    linear-gradient(90deg, rgba(255,0,0,.05), rgba(0,255,0,.02), rgba(0,0,255,.05));
+    linear-gradient(rgba(255,255,255,.02) 50%, rgba(0,0,0,.18) 50%),
+    linear-gradient(90deg,
+      rgba(255,0,0,.04),
+      rgba(0,255,0,.02),
+      rgba(0,0,255,.04));
+
   background-size:100% 4px, 3px 100%;
+  mix-blend-mode:screen;
 }
 
-/* ================= MAP ================= */
+/* ===================================================== */
+/* MAP */
+/* ===================================================== */
+
 #map{
   position:fixed;
   inset:0;
   z-index:0;
-  filter:grayscale(1) brightness(.4) contrast(1.2);
+  overflow:hidden;
+  filter:grayscale(1) brightness(.25) contrast(1.3);
 }
-#map iframe{width:100%;height:100%;border:none;transform:scale(1.05);}
 
-/* ================= OVERLAY ================= */
+#map iframe{
+  width:100%;
+  height:100%;
+  border:none;
+  transform:scale(1.08);
+  pointer-events:none;
+}
+
+/* ===================================================== */
+/* ATMOSPHERIC OVERLAY */
+/* ===================================================== */
+
 #overlay{
   position:fixed;
   inset:0;
   z-index:1;
   background:
-    radial-gradient(circle at center, rgba(0,255,255,.08), rgba(0,0,0,.92) 70%);
-  pointer-events:none;
+    radial-gradient(circle at center,
+    rgba(0,255,255,.10),
+    rgba(0,0,0,.96) 75%);
 }
 
-/* 🌫 FOG */
-#fog{
+/* ===================================================== */
+/* GRID */
+/* ===================================================== */
+
+#grid{
   position:fixed;
   inset:0;
   z-index:2;
   pointer-events:none;
-  background:
-    radial-gradient(circle at center, rgba(0,255,255,.08), rgba(0,0,0,.9) 70%);
+  background-image:
+    linear-gradient(rgba(0,255,255,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,255,255,.04) 1px, transparent 1px);
+
+  background-size:40px 40px;
 }
 
-/* 🎯 SCANNER */
+/* ===================================================== */
+/* SCANNER */
+/* ===================================================== */
+
 #scanner{
   position:fixed;
   inset:0;
   z-index:3;
   pointer-events:none;
 }
+
 .scanline{
   position:absolute;
   width:100%;
   height:2px;
-  background:linear-gradient(to right, transparent, rgba(0,255,255,.7), transparent);
-  animation:scanMove 4s linear infinite;
-}
-@keyframes scanMove{
-  0%{top:0%;}
-  100%{top:100%;}
+  background:
+    linear-gradient(to right,
+    transparent,
+    rgba(0,255,255,.8),
+    transparent);
+
+  animation:scan 5s linear infinite;
 }
 
-/* ================= CORE ================= */
-#core{
+@keyframes scan{
+  0%{top:-5%;}
+  100%{top:105%;}
+}
+
+/* ===================================================== */
+/* RADAR RING */
+/* ===================================================== */
+
+#radar{
   position:absolute;
+  width:600px;
+  height:600px;
+  border-radius:50%;
+  border:1px solid rgba(0,255,255,.12);
   top:50%;
   left:50%;
   transform:translate(-50%,-50%);
-  width:160px;
-  height:160px;
+  z-index:2;
+
+  animation:rotate 40s linear infinite;
+}
+
+#radar::before,
+#radar::after{
+  content:"";
+  position:absolute;
+  inset:10%;
   border-radius:50%;
-  background:radial-gradient(circle, rgba(0,255,255,.25), transparent 70%);
-  box-shadow:0 0 90px rgba(0,255,255,.6);
-  z-index:5;
+  border:1px solid rgba(0,255,255,.08);
+}
+
+@keyframes rotate{
+  from{transform:translate(-50%,-50%) rotate(0deg);}
+  to{transform:translate(-50%,-50%) rotate(360deg);}
+}
+
+/* ===================================================== */
+/* CORE */
+/* ===================================================== */
+
+#core{
+  position:absolute;
+  width:180px;
+  height:180px;
+  border-radius:50%;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  z-index:10;
+
   display:flex;
+  flex-direction:column;
   align-items:center;
   justify-content:center;
-  font-family:'Orbitron';
-  text-align:center;
+
+  background:
+    radial-gradient(circle,
+    rgba(0,255,255,.30),
+    rgba(0,255,255,.04) 60%,
+    transparent 75%);
+
+  border:1px solid rgba(0,255,255,.25);
+
+  box-shadow:
+    0 0 60px rgba(0,255,255,.25),
+    inset 0 0 40px rgba(0,255,255,.15);
+
   animation:pulse 3s infinite;
 }
+
 @keyframes pulse{
-  0%,100%{transform:translate(-50%,-50%) scale(1);}
-  50%{transform:translate(-50%,-50%) scale(1.08);}
+  0%,100%{
+    transform:translate(-50%,-50%) scale(1);
+  }
+
+  50%{
+    transform:translate(-50%,-50%) scale(1.05);
+  }
 }
 
-/* ================= ZONES ================= */
+#core h1{
+  margin:0;
+  font-size:18px;
+  font-family:'Orbitron';
+  letter-spacing:2px;
+}
+
+#trust{
+  font-size:28px;
+  margin-top:8px;
+  font-family:'Orbitron';
+}
+
+/* ===================================================== */
+/* PANELS */
+/* ===================================================== */
+
 .zone{
   position:absolute;
-  width:260px;
+  width:290px;
   padding:14px;
-  z-index:6;
-  background:rgba(0,0,0,.35);
-  border:1px solid rgba(0,255,255,.25);
-  backdrop-filter:blur(10px);
-  box-shadow:0 0 20px rgba(0,255,255,.05);
-}
 
-#bioZone{top:12%;left:10%;}
-#cyberZone{top:12%;right:10%;}
-#medicalZone{bottom:12%;right:10%;}
+  background:rgba(0,0,0,.38);
 
-/* ================= NODES ================= */
-.node{
-  position:absolute;
-  z-index:6;
-  font-size:12px;
-  opacity:.85;
-  text-shadow:0 0 10px rgba(0,255,255,.3);
-}
+  border:
+    1px solid rgba(0,255,255,.18);
 
-#bio{top:8%;left:50%;transform:translateX(-50%);}
-#netNode{top:50%;left:8%;}
-#rf{top:50%;right:8%;}
-#dev{bottom:8%;left:50%;transform:translateX(-50%);}
+  backdrop-filter:blur(12px);
 
-/* ================= BUTTONS (UPGRADED) ================= */
-button{
-  width:100%;
-  margin:6px 0;
-  padding:12px;
-  border:1px solid #00eaff;
-  background:transparent;
-  color:#00eaff;
-  font-family:'Orbitron';
-  cursor:pointer;
-  position:relative;
-  overflow:hidden;
-  transition:0.4s;
+  box-shadow:
+    0 0 25px rgba(0,255,255,.05);
 
-  clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);
-}
-
-button::after{
-  content:'';
-  position:absolute;
-  top:0;
-  left:-100%;
-  width:100%;
-  height:100%;
-  background:linear-gradient(90deg, transparent, rgba(0,255,255,.4), transparent);
-  transition:.5s;
-}
-
-button:hover{
-  background:rgba(0,255,255,.1);
-  box-shadow:0 0 15px #00eaff;
-}
-
-button:hover::after{
-  left:100%;
+  z-index:20;
 }
 
 .panelTitle{
   font-family:'Orbitron';
-  font-size:11px;
+  font-size:12px;
+  letter-spacing:2px;
+  margin-bottom:10px;
   opacity:.8;
-  margin-bottom:6px;
+}
+
+/* PANEL POSITIONS */
+
+#bioZone{top:8%;left:4%;}
+#cyberZone{top:8%;right:4%;}
+#neuralZone{bottom:8%;right:4%;}
+#logZone{
+  bottom:8%;
+  left:4%;
+  height:240px;
+  overflow:hidden;
+}
+
+/* ===================================================== */
+/* BUTTONS */
+/* ===================================================== */
+
+button{
+  width:100%;
+  margin-top:8px;
+  padding:12px;
+
+  color:var(--cyan);
+  background:transparent;
+
+  border:1px solid var(--cyan);
+
+  cursor:pointer;
+
+  font-family:'Orbitron';
+
+  transition:.3s;
+
+  clip-path:
+    polygon(10% 0,
+    100% 0,
+    100% 70%,
+    90% 100%,
+    0 100%,
+    0 30%);
+}
+
+button:hover{
+  background:rgba(0,255,255,.10);
+
+  box-shadow:
+    0 0 20px rgba(0,255,255,.35);
+}
+
+/* ===================================================== */
+/* NODES */
+/* ===================================================== */
+
+.node{
+  position:absolute;
+  z-index:20;
+  font-size:12px;
+  opacity:.9;
+  text-shadow:0 0 10px rgba(0,255,255,.35);
+}
+
+#bioNode{
+  top:5%;
+  left:50%;
+  transform:translateX(-50%);
+}
+
+#netNode{
+  top:50%;
+  left:4%;
+}
+
+#rfNode{
+  top:50%;
+  right:4%;
+}
+
+#devNode{
+  bottom:4%;
+  left:50%;
+  transform:translateX(-50%);
+}
+
+/* ===================================================== */
+/* ALERT */
+/* ===================================================== */
+
+#alertBanner{
+  position:fixed;
+  top:0;
+  left:0;
+  right:0;
+
+  padding:10px;
+
+  background:rgba(255,0,0,.12);
+
+  border-bottom:1px solid rgba(255,0,0,.35);
+
+  text-align:center;
+
+  font-family:'Orbitron';
+
+  letter-spacing:3px;
+
+  z-index:100;
+
+  opacity:0;
+
+  transition:.4s;
+}
+
+/* ===================================================== */
+/* LOGS */
+/* ===================================================== */
+
+#logs{
+  font-size:13px;
+  line-height:1.4;
+  height:190px;
+  overflow:hidden;
+}
+
+.log{
+  margin-bottom:5px;
+  opacity:.85;
+}
+
+/* ===================================================== */
+/* BLINK */
+/* ===================================================== */
+
+.blink{
+  animation:blink 1s infinite;
+}
+
+@keyframes blink{
+  0%,50%{opacity:1;}
+  51%,100%{opacity:.2;}
 }
 
 </style>
@@ -180,118 +392,310 @@ button:hover::after{
 
 <body>
 
+<!-- MAP -->
 <div id="map">
   <iframe src="https://www.google.com/maps?q=Manhattan&output=embed"></iframe>
 </div>
 
 <div id="overlay"></div>
-<div id="fog"></div>
+<div id="grid"></div>
 
 <div id="scanner">
   <div class="scanline"></div>
 </div>
 
-<!-- CORE -->
-<div id="core">
-AI CORE<br>
-<span id="trust">100%</span>
+<div id="radar"></div>
+
+<!-- ALERT -->
+<div id="alertBanner">
+  THREAT DETECTED
 </div>
 
-<!-- CYBER -->
-<div id="cyberZone" class="zone">
-<div class="panelTitle">CYBER SYSTEM</div>
-NET: <span id="netStat">--</span><br>
-PACKETS: <span id="packets">--</span><br>
-THREAT: <span id="threat">--</span><br>
-<button>SCAN NETWORK</button>
-<button>ANALYZE RF</button>
-<button>TRACE SIGNAL</button>
+<!-- CORE -->
+<div id="core">
+  <h1>AI CORE</h1>
+  <div id="trust">100%</div>
 </div>
 
 <!-- BIO -->
-<div id="bioZone" class="zone">
-<div class="panelTitle">BIO SYSTEM</div>
-HEART: <span id="heart">--</span><br>
-RESP: <span id="resp">--</span><br>
-STRESS: <span id="stress">--</span><br>
-<button>SCAN VITALS</button>
-<button>RUN DIAGNOSTIC</button>
+<div class="zone" id="bioZone">
+  <div class="panelTitle">BIO SYSTEM</div>
+
+  HEART RATE:
+  <span id="heart">--</span><br>
+
+  RESPIRATION:
+  <span id="resp">--</span><br>
+
+  STRESS:
+  <span id="stress">--</span><br><br>
+
+  <button onclick="mode('bio')">SCAN VITALS</button>
+  <button onclick="addLog('BIO DIAGNOSTIC COMPLETE')">RUN DIAGNOSTIC</button>
 </div>
 
-<!-- MEDICAL -->
-<div id="medicalZone" class="zone">
-<div class="panelTitle">NEURAL SYSTEM</div>
-EEG: <span id="eeg">--</span><br>
-EMG: <span id="emg">--</span><br>
-STATUS: <span id="status">--</span><br>
-<button>NEURAL CHECK</button>
-<button>SYNCHRONIZE</button>
+<!-- CYBER -->
+<div class="zone" id="cyberZone">
+  <div class="panelTitle">CYBER SYSTEM</div>
+
+  NETWORK:
+  <span id="net">--</span><br>
+
+  PACKETS:
+  <span id="packets">--</span><br>
+
+  THREAT:
+  <span id="threat">--</span><br><br>
+
+  <button onclick="mode('threat')">SCAN NETWORK</button>
+  <button onclick="addLog('RF ANALYSIS COMPLETE')">ANALYZE RF</button>
+  <button onclick="addLog('SIGNAL TRACE ACQUIRED')">TRACE SIGNAL</button>
+</div>
+
+<!-- NEURAL -->
+<div class="zone" id="neuralZone">
+  <div class="panelTitle">NEURAL SYSTEM</div>
+
+  EEG:
+  <span id="eeg">--</span><br>
+
+  EMG:
+  <span id="emg">--</span><br>
+
+  STATUS:
+  <span id="status">--</span><br><br>
+
+  <button onclick="mode('sync')">NEURAL CHECK</button>
+  <button onclick="addLog('NEURAL SYNCHRONIZATION STABLE')">SYNCHRONIZE</button>
+</div>
+
+<!-- LOGS -->
+<div class="zone" id="logZone">
+  <div class="panelTitle">SYSTEM LOG</div>
+  <div id="logs"></div>
 </div>
 
 <!-- NODES -->
-<div id="bio" class="node">BIO<br><span id="bioVal">--</span></div>
-<div id="netNode" class="node">NET<br><span id="netVal">--</span></div>
-<div id="rf" class="node">RF<br><span id="rfVal">--</span></div>
-<div id="dev" class="node">DEV<br><span id="devVal">--</span></div>
+<div class="node" id="bioNode">
+  BIO<br>
+  <span id="bioVal">--</span>
+</div>
+
+<div class="node" id="netNode">
+  NET<br>
+  <span id="netVal">--</span>
+</div>
+
+<div class="node" id="rfNode">
+  RF<br>
+  <span id="rfVal">--</span>
+</div>
+
+<div class="node" id="devNode">
+  DEVICES<br>
+  <span id="devVal">--</span>
+</div>
 
 <script>
 
-function r(min,max){return Math.random()*(max-min)+min}
+/* ===================================================== */
+/* HELPERS */
+/* ===================================================== */
 
-setInterval(()=>{
+function r(min,max){
+  return Math.random()*(max-min)+min;
+}
 
-  const heart = Math.floor(r(60,110));
-  const resp = Math.floor(r(10,20));
-  const stress = ["LOW","MED","HIGH"][Math.floor(Math.random()*3)];
+const logs=document.getElementById("logs");
 
-  const netVal = Math.floor(r(20,100));
-  const packetsVal = Math.floor(r(50,200));
-  const threatVal = Math.floor(Math.random()*100);
+function addLog(msg){
 
-  const eeg = ["FOCUSED","DROWSY","ACTIVE"][Math.floor(Math.random()*3)];
-  const emg = ["RELAXED","TENSE","ACTIVE"][Math.floor(Math.random()*3)];
-  const status = heart > 100 ? "ELEVATED" : "NOMINAL";
+  const div=document.createElement("div");
+  div.className="log";
 
-  heartEl.textContent = heart;
-  respEl.textContent = resp;
-  stressEl.textContent = stress;
+  const time=new Date().toLocaleTimeString();
 
-  netStat.textContent = netVal;
-  packets.textContent = packetsVal;
-  threat.textContent = threatVal+"%";
+  div.textContent=
+    "["+time+"] "+msg;
 
-  eegEl.textContent = eeg;
-  emgEl.textContent = emg;
-  statusEl.textContent = status;
+  logs.prepend(div);
 
-  trust.textContent = Math.floor(100 - threatVal/2)+"%";
+  while(logs.children.length > 12){
+    logs.removeChild(logs.lastChild);
+  }
+}
 
-  bioVal.textContent = heart+" bpm";
-  netValSpan.textContent = netVal;
-  rfVal.textContent = Math.floor(r(1,10));
-  devVal.textContent = Math.floor(r(1,5));
-
-},1200);
-
+/* ===================================================== */
 /* ELEMENTS */
-const heartEl=document.getElementById("heart");
-const respEl=document.getElementById("resp");
-const stressEl=document.getElementById("stress");
+/* ===================================================== */
 
-const netStat=document.getElementById("netStat");
+const heart=document.getElementById("heart");
+const resp=document.getElementById("resp");
+const stress=document.getElementById("stress");
+
+const net=document.getElementById("net");
 const packets=document.getElementById("packets");
 const threat=document.getElementById("threat");
 
-const eegEl=document.getElementById("eeg");
-const emgEl=document.getElementById("emg");
-const statusEl=document.getElementById("status");
+const eeg=document.getElementById("eeg");
+const emg=document.getElementById("emg");
+const status=document.getElementById("status");
+
+const trust=document.getElementById("trust");
 
 const bioVal=document.getElementById("bioVal");
-const netValSpan=document.getElementById("netVal");
+const netVal=document.getElementById("netVal");
 const rfVal=document.getElementById("rfVal");
 const devVal=document.getElementById("devVal");
 
-const trust=document.getElementById("trust");
+const alertBanner=document.getElementById("alertBanner");
+
+/* ===================================================== */
+/* MODES */
+/* ===================================================== */
+
+let systemMode="normal";
+
+function mode(m){
+
+  systemMode=m;
+
+  addLog("MODE SWITCHED: "+m.toUpperCase());
+
+  if(m==="threat"){
+    alertBanner.style.opacity=1;
+    document.body.style.filter="contrast(1.2)";
+  }
+
+  if(m==="sync"){
+    alertBanner.style.opacity=0;
+    document.body.style.filter="hue-rotate(40deg)";
+  }
+
+  if(m==="bio"){
+    alertBanner.style.opacity=0;
+    document.body.style.filter="none";
+  }
+
+}
+
+/* ===================================================== */
+/* TELEMETRY LOOP */
+/* ===================================================== */
+
+setInterval(()=>{
+
+  let threatLevel=Math.floor(r(0,100));
+
+  if(systemMode==="threat"){
+    threatLevel=Math.floor(r(70,100));
+  }
+
+  const heartRate=Math.floor(r(60,120));
+  const respiration=Math.floor(r(10,22));
+
+  const stressStates=["LOW","MEDIUM","HIGH"];
+  const eegStates=["FOCUSED","ACTIVE","DROWSY"];
+  const emgStates=["RELAXED","TENSE","ACTIVE"];
+
+  heart.textContent=heartRate;
+  resp.textContent=respiration;
+  stress.textContent=
+    stressStates[Math.floor(r(0,3))];
+
+  net.textContent=Math.floor(r(40,100))+"%";
+
+  packets.textContent=
+    Math.floor(r(100,900));
+
+  threat.textContent=
+    threatLevel+"%";
+
+  eeg.textContent=
+    eegStates[Math.floor(r(0,3))];
+
+  emg.textContent=
+    emgStates[Math.floor(r(0,3))];
+
+  status.textContent=
+    heartRate > 100 ?
+    "ELEVATED" :
+    "NOMINAL";
+
+  trust.textContent=
+    (100 - Math.floor(threatLevel/2))+"%";
+
+  bioVal.textContent=
+    heartRate+" BPM";
+
+  netVal.textContent=
+    Math.floor(r(20,100));
+
+  rfVal.textContent=
+    Math.floor(r(1,10));
+
+  devVal.textContent=
+    Math.floor(r(2,8));
+
+  /* THREAT COLORS */
+
+  if(threatLevel < 40){
+    threat.style.color="#00ff99";
+  }
+
+  else if(threatLevel < 70){
+    threat.style.color="#ffd000";
+  }
+
+  else{
+    threat.style.color="#ff3b3b";
+
+    addLog("WARNING: THREAT SPIKE DETECTED");
+
+    alertBanner.style.opacity=1;
+
+    setTimeout(()=>{
+      alertBanner.style.opacity=0;
+    },2000);
+  }
+
+},1200);
+
+/* ===================================================== */
+/* AUTO LOG EVENTS */
+/* ===================================================== */
+
+const autoLogs=[
+  "RF INTERFERENCE DETECTED",
+  "NEURAL LINK STABLE",
+  "ESP32 NODE CONNECTED",
+  "PACKET SURGE DETECTED",
+  "AI TRUST MATRIX UPDATED",
+  "BIO SIGNAL SYNCHRONIZED",
+  "THERMAL SENSOR ONLINE",
+  "EXTERNAL DEVICE IDENTIFIED",
+  "SCAN GRID ACTIVE",
+  "SIGNAL TRIANGULATION COMPLETE"
+];
+
+setInterval(()=>{
+
+  const msg=
+    autoLogs[
+      Math.floor(Math.random()*autoLogs.length)
+    ];
+
+  addLog(msg);
+
+},3500);
+
+/* ===================================================== */
+/* STARTUP */
+/* ===================================================== */
+
+addLog("AI CORE INITIALIZED");
+addLog("SYSTEM BOOT COMPLETE");
+addLog("BIO-CYBER LINK ACTIVE");
 
 </script>
 
