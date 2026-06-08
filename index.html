@@ -1,704 +1,417 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Autonomous Bio-Cyber Neural HUD</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
-
-<style>
-
-:root{
-  --cyan:#00eaff;
-  --green:#00ff99;
-  --yellow:#ffd000;
-  --red:#ff3b3b;
-  --bg:#020305;
-}
-
-html,body{
-  margin:0;
-  height:100%;
-  overflow:hidden;
-  background:#000;
-  color:var(--cyan);
-  font-family:'Rajdhani',sans-serif;
-}
-
-/* ===================================================== */
-/* CRT OVERLAY */
-/* ===================================================== */
-
-body::before{
-  content:"";
-  position:fixed;
-  inset:0;
-  z-index:50;
-  pointer-events:none;
-
-  background:
-    linear-gradient(rgba(255,255,255,.02) 50%, rgba(0,0,0,.18) 50%),
-    linear-gradient(90deg,
-      rgba(255,0,0,.04),
-      rgba(0,255,0,.02),
-      rgba(0,0,255,.04));
-
-  background-size:100% 4px, 3px 100%;
-  mix-blend-mode:screen;
-}
-
-/* ===================================================== */
-/* MAP */
-/* ===================================================== */
-
-#map{
-  position:fixed;
-  inset:0;
-  z-index:0;
-  overflow:hidden;
-  filter:grayscale(1) brightness(.25) contrast(1.3);
-}
-
-#map iframe{
-  width:100%;
-  height:100%;
-  border:none;
-  transform:scale(1.08);
-  pointer-events:none;
-}
-
-/* ===================================================== */
-/* ATMOSPHERIC OVERLAY */
-/* ===================================================== */
-
-#overlay{
-  position:fixed;
-  inset:0;
-  z-index:1;
-  background:
-    radial-gradient(circle at center,
-    rgba(0,255,255,.10),
-    rgba(0,0,0,.96) 75%);
-}
-
-/* ===================================================== */
-/* GRID */
-/* ===================================================== */
-
-#grid{
-  position:fixed;
-  inset:0;
-  z-index:2;
-  pointer-events:none;
-  background-image:
-    linear-gradient(rgba(0,255,255,.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,255,255,.04) 1px, transparent 1px);
-
-  background-size:40px 40px;
-}
-
-/* ===================================================== */
-/* SCANNER */
-/* ===================================================== */
-
-#scanner{
-  position:fixed;
-  inset:0;
-  z-index:3;
-  pointer-events:none;
-}
-
-.scanline{
-  position:absolute;
-  width:100%;
-  height:2px;
-  background:
-    linear-gradient(to right,
-    transparent,
-    rgba(0,255,255,.8),
-    transparent);
-
-  animation:scan 5s linear infinite;
-}
-
-@keyframes scan{
-  0%{top:-5%;}
-  100%{top:105%;}
-}
-
-/* ===================================================== */
-/* RADAR RING */
-/* ===================================================== */
-
-#radar{
-  position:absolute;
-  width:600px;
-  height:600px;
-  border-radius:50%;
-  border:1px solid rgba(0,255,255,.12);
-  top:50%;
-  left:50%;
-  transform:translate(-50%,-50%);
-  z-index:2;
-
-  animation:rotate 40s linear infinite;
-}
-
-#radar::before,
-#radar::after{
-  content:"";
-  position:absolute;
-  inset:10%;
-  border-radius:50%;
-  border:1px solid rgba(0,255,255,.08);
-}
-
-@keyframes rotate{
-  from{transform:translate(-50%,-50%) rotate(0deg);}
-  to{transform:translate(-50%,-50%) rotate(360deg);}
-}
-
-/* ===================================================== */
-/* CORE */
-/* ===================================================== */
-
-#core{
-  position:absolute;
-  width:180px;
-  height:180px;
-  border-radius:50%;
-  top:50%;
-  left:50%;
-  transform:translate(-50%,-50%);
-  z-index:10;
-
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-
-  background:
-    radial-gradient(circle,
-    rgba(0,255,255,.30),
-    rgba(0,255,255,.04) 60%,
-    transparent 75%);
-
-  border:1px solid rgba(0,255,255,.25);
-
-  box-shadow:
-    0 0 60px rgba(0,255,255,.25),
-    inset 0 0 40px rgba(0,255,255,.15);
-
-  animation:pulse 3s infinite;
-}
-
-@keyframes pulse{
-  0%,100%{
-    transform:translate(-50%,-50%) scale(1);
-  }
-
-  50%{
-    transform:translate(-50%,-50%) scale(1.05);
-  }
-}
-
-#core h1{
-  margin:0;
-  font-size:18px;
-  font-family:'Orbitron';
-  letter-spacing:2px;
-}
-
-#trust{
-  font-size:28px;
-  margin-top:8px;
-  font-family:'Orbitron';
-}
-
-/* ===================================================== */
-/* PANELS */
-/* ===================================================== */
-
-.zone{
-  position:absolute;
-  width:290px;
-  padding:14px;
-
-  background:rgba(0,0,0,.38);
-
-  border:
-    1px solid rgba(0,255,255,.18);
-
-  backdrop-filter:blur(12px);
-
-  box-shadow:
-    0 0 25px rgba(0,255,255,.05);
-
-  z-index:20;
-}
-
-.panelTitle{
-  font-family:'Orbitron';
-  font-size:12px;
-  letter-spacing:2px;
-  margin-bottom:10px;
-  opacity:.8;
-}
-
-/* PANEL POSITIONS */
-
-#bioZone{top:8%;left:4%;}
-#cyberZone{top:8%;right:4%;}
-#neuralZone{bottom:8%;right:4%;}
-#logZone{
-  bottom:8%;
-  left:4%;
-  height:240px;
-  overflow:hidden;
-}
-
-/* ===================================================== */
-/* BUTTONS */
-/* ===================================================== */
-
-button{
-  width:100%;
-  margin-top:8px;
-  padding:12px;
-
-  color:var(--cyan);
-  background:transparent;
-
-  border:1px solid var(--cyan);
-
-  cursor:pointer;
-
-  font-family:'Orbitron';
-
-  transition:.3s;
-
-  clip-path:
-    polygon(10% 0,
-    100% 0,
-    100% 70%,
-    90% 100%,
-    0 100%,
-    0 30%);
-}
-
-button:hover{
-  background:rgba(0,255,255,.10);
-
-  box-shadow:
-    0 0 20px rgba(0,255,255,.35);
-}
-
-/* ===================================================== */
-/* NODES */
-/* ===================================================== */
-
-.node{
-  position:absolute;
-  z-index:20;
-  font-size:12px;
-  opacity:.9;
-  text-shadow:0 0 10px rgba(0,255,255,.35);
-}
-
-#bioNode{
-  top:5%;
-  left:50%;
-  transform:translateX(-50%);
-}
-
-#netNode{
-  top:50%;
-  left:4%;
-}
-
-#rfNode{
-  top:50%;
-  right:4%;
-}
-
-#devNode{
-  bottom:4%;
-  left:50%;
-  transform:translateX(-50%);
-}
-
-/* ===================================================== */
-/* ALERT */
-/* ===================================================== */
-
-#alertBanner{
-  position:fixed;
-  top:0;
-  left:0;
-  right:0;
-
-  padding:10px;
-
-  background:rgba(255,0,0,.12);
-
-  border-bottom:1px solid rgba(255,0,0,.35);
-
-  text-align:center;
-
-  font-family:'Orbitron';
-
-  letter-spacing:3px;
-
-  z-index:100;
-
-  opacity:0;
-
-  transition:.4s;
-}
-
-/* ===================================================== */
-/* LOGS */
-/* ===================================================== */
-
-#logs{
-  font-size:13px;
-  line-height:1.4;
-  height:190px;
-  overflow:hidden;
-}
-
-.log{
-  margin-bottom:5px;
-  opacity:.85;
-}
-
-/* ===================================================== */
-/* BLINK */
-/* ===================================================== */
-
-.blink{
-  animation:blink 1s infinite;
-}
-
-@keyframes blink{
-  0%,50%{opacity:1;}
-  51%,100%{opacity:.2;}
-}
-
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CYBER-BIO // SOC MAIN_TERMINAL</title>
+    <style>
+        :root {
+            --bg-pure: #000000;
+            --panel-bg: #050508;
+            --neon-cyan: #00f0ff;
+            --neon-red: #ff0055;
+            --neon-orange: #ffaa00;
+            --neon-green: #39ff14;
+            --text-main: #e0e0e0;
+            --text-dim: #555555;
+        }
+
+        body {
+            background-color: var(--bg-pure);
+            color: var(--text-main);
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-x: hidden;
+            background-image: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 4px, 6px 100%;
+        }
+
+        /* Screen Flash Overlay Effect */
+        body.breach-active {
+            animation: red-alert-flash 2.5s infinite alternate;
+        }
+
+        .demo-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .demo-btn {
+            background: #000;
+            border: 1px solid var(--neon-cyan);
+            color: var(--neon-cyan);
+            padding: 8px 16px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 0 5px rgba(0, 240, 255, 0.2);
+        }
+
+        .demo-btn:hover {
+            background: var(--neon-cyan);
+            color: #000;
+            box-shadow: 0 0 15px var(--neon-cyan);
+        }
+
+        header {
+            text-align: center;
+            border: 1px solid var(--neon-cyan);
+            padding: 15px;
+            margin-bottom: 20px;
+            background: var(--panel-bg);
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.1);
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 26px;
+            letter-spacing: 6px;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 8px var(--neon-cyan);
+        }
+
+        .alert-banner {
+            background: #000;
+            border: 1px dashed var(--neon-red);
+            color: var(--neon-red);
+            padding: 10px;
+            margin-top: 10px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-shadow: 0 0 5px var(--neon-red);
+            animation: glitch-text 1.5s infinite;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 330px 1fr 350px;
+            gap: 20px;
+        }
+
+        .panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--text-dim);
+            padding: 15px;
+            position: relative;
+        }
+
+        .panel-header {
+            font-size: 13px;
+            font-weight: bold;
+            color: var(--neon-cyan);
+            border-bottom: 1px solid var(--text-dim);
+            padding-bottom: 6px;
+            margin-bottom: 15px;
+            letter-spacing: 2px;
+        }
+
+        .column-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .biometric-canvas {
+            flex-grow: 1;
+            border: 1px solid var(--neon-red);
+            background: rgba(20, 0, 5, 0.6);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 440px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .biometric-canvas::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: var(--neon-red);
+            box-shadow: 0 0 8px var(--neon-red);
+            top: 0;
+            left: 0;
+            animation: scan-down 3.5s linear infinite;
+        }
+
+        .bio-placeholder {
+            text-align: center;
+            color: var(--neon-red);
+            z-index: 2;
+            text-shadow: 0 0 5px var(--neon-red);
+        }
+
+        .propagation-display {
+            height: 120px;
+            padding: 12px;
+            color: #888;
+            font-size: 11px;
+            border: 1px solid var(--text-dim);
+            background: #020202;
+            overflow: hidden;
+        }
+
+        .log-terminal {
+            font-family: monospace;
+            color: var(--neon-cyan);
+            margin-bottom: 4px;
+        }
+
+        .threat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: #020202;
+            border: 1px solid var(--text-dim);
+            font-size: 11px;
+        }
+
+        .threat-critical {
+            border: 1px solid var(--neon-red);
+            box-shadow: 0 0 8px rgba(255, 0, 85, 0.1);
+        }
+
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-bottom: 12px;
+            padding-bottom: 6px;
+            border-bottom: 1px dotted #222;
+        }
+
+        .data-label { color: var(--text-main); }
+        
+        .status-badge {
+            font-weight: bold;
+            padding: 2px 6px;
+            font-size: 10px;
+            background: #000;
+            border: 1px solid var(--text-dim);
+        }
+
+        .status-danger { color: var(--neon-red); border-color: var(--neon-red); text-shadow: 0 0 4px var(--neon-red); }
+        .status-warning { color: var(--neon-orange); border-color: var(--neon-orange); }
+        .status-success { color: var(--neon-green); border-color: var(--neon-green); text-shadow: 0 0 4px var(--neon-green); }
+
+        /* Animations Framework */
+        @keyframes red-alert-flash {
+            0% { background-color: #000000; }
+            100% { background-color: #1a0005; }
+        }
+        @keyframes scan-down {
+            0% { top: 0%; }
+            100% { top: 100%; }
+        }
+        @keyframes glitch-text {
+            0%, 100% { opacity: 1; transform: skewX(0deg); }
+            50% { opacity: 0.85; transform: skewX(1deg); }
+        }
+    </style>
 </head>
-
-<body>
-
-<!-- MAP -->
-<div id="map">
-  <iframe src="https://www.google.com/maps?q=Manhattan&output=embed"></iframe>
-</div>
-
-<div id="overlay"></div>
-<div id="grid"></div>
-
-<div id="scanner">
-  <div class="scanline"></div>
-</div>
-
-<div id="radar"></div>
-
-<!-- ALERT -->
-<div id="alertBanner">
-  THREAT DETECTED
-</div>
-
-<!-- CORE -->
-<div id="core">
-  <h1>AI CORE</h1>
-  <div id="trust">100%</div>
-</div>
-
-<!-- BIO -->
-<div class="zone" id="bioZone">
-  <div class="panelTitle">BIO SYSTEM</div>
-
-  HEART RATE:
-  <span id="heart">--</span><br>
-
-  RESPIRATION:
-  <span id="resp">--</span><br>
-
-  STRESS:
-  <span id="stress">--</span><br><br>
-
-  <button onclick="mode('bio')">SCAN VITALS</button>
-  <button onclick="addLog('BIO DIAGNOSTIC COMPLETE')">RUN DIAGNOSTIC</button>
-</div>
-
-<!-- CYBER -->
-<div class="zone" id="cyberZone">
-  <div class="panelTitle">CYBER SYSTEM</div>
-
-  NETWORK:
-  <span id="net">--</span><br>
-
-  PACKETS:
-  <span id="packets">--</span><br>
-
-  THREAT:
-  <span id="threat">--</span><br><br>
-
-  <button onclick="mode('threat')">SCAN NETWORK</button>
-  <button onclick="addLog('RF ANALYSIS COMPLETE')">ANALYZE RF</button>
-  <button onclick="addLog('SIGNAL TRACE ACQUIRED')">TRACE SIGNAL</button>
-</div>
-
-<!-- NEURAL -->
-<div class="zone" id="neuralZone">
-  <div class="panelTitle">NEURAL SYSTEM</div>
-
-  EEG:
-  <span id="eeg">--</span><br>
-
-  EMG:
-  <span id="emg">--</span><br>
-
-  STATUS:
-  <span id="status">--</span><br><br>
-
-  <button onclick="mode('sync')">NEURAL CHECK</button>
-  <button onclick="addLog('NEURAL SYNCHRONIZATION STABLE')">SYNCHRONIZE</button>
-</div>
-
-<!-- LOGS -->
-<div class="zone" id="logZone">
-  <div class="panelTitle">SYSTEM LOG</div>
-  <div id="logs"></div>
-</div>
-
-<!-- NODES -->
-<div class="node" id="bioNode">
-  BIO<br>
-  <span id="bioVal">--</span>
-</div>
-
-<div class="node" id="netNode">
-  NET<br>
-  <span id="netVal">--</span>
-</div>
-
-<div class="node" id="rfNode">
-  RF<br>
-  <span id="rfVal">--</span>
-</div>
-
-<div class="node" id="devNode">
-  DEVICES<br>
-  <span id="devVal">--</span>
-</div>
-
-<script>
-
-/* ===================================================== */
-/* HELPERS */
-/* ===================================================== */
-
-function r(min,max){
-  return Math.random()*(max-min)+min;
-}
-
-const logs=document.getElementById("logs");
-
-function addLog(msg){
-
-  const div=document.createElement("div");
-  div.className="log";
-
-  const time=new Date().toLocaleTimeString();
-
-  div.textContent=
-    "["+time+"] "+msg;
-
-  logs.prepend(div);
-
-  while(logs.children.length > 12){
-    logs.removeChild(logs.lastChild);
-  }
-}
-
-/* ===================================================== */
-/* ELEMENTS */
-/* ===================================================== */
-
-const heart=document.getElementById("heart");
-const resp=document.getElementById("resp");
-const stress=document.getElementById("stress");
-
-const net=document.getElementById("net");
-const packets=document.getElementById("packets");
-const threat=document.getElementById("threat");
-
-const eeg=document.getElementById("eeg");
-const emg=document.getElementById("emg");
-const status=document.getElementById("status");
-
-const trust=document.getElementById("trust");
-
-const bioVal=document.getElementById("bioVal");
-const netVal=document.getElementById("netVal");
-const rfVal=document.getElementById("rfVal");
-const devVal=document.getElementById("devVal");
-
-const alertBanner=document.getElementById("alertBanner");
-
-/* ===================================================== */
-/* MODES */
-/* ===================================================== */
-
-let systemMode="normal";
-
-function mode(m){
-
-  systemMode=m;
-
-  addLog("MODE SWITCHED: "+m.toUpperCase());
-
-  if(m==="threat"){
-    alertBanner.style.opacity=1;
-    document.body.style.filter="contrast(1.2)";
-  }
-
-  if(m==="sync"){
-    alertBanner.style.opacity=0;
-    document.body.style.filter="hue-rotate(40deg)";
-  }
-
-  if(m==="bio"){
-    alertBanner.style.opacity=0;
-    document.body.style.filter="none";
-  }
-
-}
-
-/* ===================================================== */
-/* TELEMETRY LOOP */
-/* ===================================================== */
-
-setInterval(()=>{
-
-  let threatLevel=Math.floor(r(0,100));
-
-  if(systemMode==="threat"){
-    threatLevel=Math.floor(r(70,100));
-  }
-
-  const heartRate=Math.floor(r(60,120));
-  const respiration=Math.floor(r(10,22));
-
-  const stressStates=["LOW","MEDIUM","HIGH"];
-  const eegStates=["FOCUSED","ACTIVE","DROWSY"];
-  const emgStates=["RELAXED","TENSE","ACTIVE"];
-
-  heart.textContent=heartRate;
-  resp.textContent=respiration;
-  stress.textContent=
-    stressStates[Math.floor(r(0,3))];
-
-  net.textContent=Math.floor(r(40,100))+"%";
-
-  packets.textContent=
-    Math.floor(r(100,900));
-
-  threat.textContent=
-    threatLevel+"%";
-
-  eeg.textContent=
-    eegStates[Math.floor(r(0,3))];
-
-  emg.textContent=
-    emgStates[Math.floor(r(0,3))];
-
-  status.textContent=
-    heartRate > 100 ?
-    "ELEVATED" :
-    "NOMINAL";
-
-  trust.textContent=
-    (100 - Math.floor(threatLevel/2))+"%";
-
-  bioVal.textContent=
-    heartRate+" BPM";
-
-  netVal.textContent=
-    Math.floor(r(20,100));
-
-  rfVal.textContent=
-    Math.floor(r(1,10));
-
-  devVal.textContent=
-    Math.floor(r(2,8));
-
-  /* THREAT COLORS */
-
-  if(threatLevel < 40){
-    threat.style.color="#00ff99";
-  }
-
-  else if(threatLevel < 70){
-    threat.style.color="#ffd000";
-  }
-
-  else{
-    threat.style.color="#ff3b3b";
-
-    addLog("WARNING: THREAT SPIKE DETECTED");
-
-    alertBanner.style.opacity=1;
-
-    setTimeout(()=>{
-      alertBanner.style.opacity=0;
-    },2000);
-  }
-
-},1200);
-
-/* ===================================================== */
-/* AUTO LOG EVENTS */
-/* ===================================================== */
-
-const autoLogs=[
-  "RF INTERFERENCE DETECTED",
-  "NEURAL LINK STABLE",
-  "ESP32 NODE CONNECTED",
-  "PACKET SURGE DETECTED",
-  "AI TRUST MATRIX UPDATED",
-  "BIO SIGNAL SYNCHRONIZED",
-  "THERMAL SENSOR ONLINE",
-  "EXTERNAL DEVICE IDENTIFIED",
-  "SCAN GRID ACTIVE",
-  "SIGNAL TRIANGULATION COMPLETE"
-];
-
-setInterval(()=>{
-
-  const msg=
-    autoLogs[
-      Math.floor(Math.random()*autoLogs.length)
-    ];
-
-  addLog(msg);
-
-},3500);
-
-/* ===================================================== */
-/* STARTUP */
-/* ===================================================== */
-
-addLog("AI CORE INITIALIZED");
-addLog("SYSTEM BOOT COMPLETE");
-addLog("BIO-CYBER LINK ACTIVE");
-
-</script>
-
+<body class="breach-active">
+
+    <div class="demo-controls">
+        <button class="demo-btn" onclick="setSystemState('breach')">Trigger System Breach Mode</button>
+        <button class="demo-btn" onclick="setSystemState('nominal')">Clear System / Restore Nominal</button>
+    </div>
+
+    <header id="mainHeader">
+        <h1>CYBER-BIO // SOC MAIN_TERMINAL</h1>
+        <div id="alertBanner" class="alert-banner">SYSTEM BREACH! AIENT LEVEL: CRITICAL</div>
+    </header>
+
+    <div class="dashboard-grid">
+        <div class="column-stack">
+            <div class="panel">
+                <div class="panel-header">// CAM FEED MONITOR</div>
+                <div class="data-row"><span class="data-label">PERIMETER_CAM_01</span><span id="cam1" class="status-badge status-success">ACTIVE</span></div>
+                <div class="data-row"><span class="data-label">ENTRY_MAIN_02</span><span id="cam2" class="status-badge status-success">ACTIVE</span></div>
+                <div class="data-row"><span class="data-label">NETWORK_SCANNER</span><span id="netScan" class="status-badge status-danger">SCANNING...</span></div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">// BIOMETRIC DATALINK</div>
+                <div class="data-row"><span class="data-label">EMG SENSOR MAP</span><span id="bioEmg" class="status-badge status-danger">84 Hz [ERR]</span></div>
+                <div class="data-row"><span class="data-label">EEG WAVELENGTH</span><span id="bioEeg" class="status-badge status-success">12 Hz [STB]</span></div>
+                <div class="data-row"><span class="data-label">GSR REACTION</span><span id="bioGsr" class="status-badge status-danger">4.8 uS [SPK]</span></div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">// LOGISTICAL ENV</div>
+                <div class="data-row"><span class="data-label">THERMAL GRADIENT</span><span id="envThermal" class="status-badge status-danger">+5.2C [ELEV]</span></div>
+                <div class="data-row"><span class="data-label">MOTION MATRICES</span><span id="envMotion" class="status-badge status-danger">TRIP [ZN_04]</span></div>
+                <div class="data-row"><span class="data-label">EM_SIGNATURES</span><span id="envEm" class="status-badge status-success">NOMINAL</span></div>
+            </div>
+
+            <div id="lockdownPanel" class="panel" style="border-color: var(--neon-red);">
+                <div class="panel-header" style="color: var(--neon-red);">// LOCKDOWN INITIATED</div>
+                <div class="data-row"><span class="data-label">MATRIX CORE LOCK</span><span id="lockdownStatus" class="status-badge status-danger">SECURE ON</span></div>
+            </div>
+        </div>
+
+                <!-- Continuation from Grid Layout -->
+        <div class="column-stack">
+            <div id="mapCanvas" class="biometric-canvas">
+                <div class="bio-placeholder">
+                    <div id="mapTextMain" style="font-size: 20px; font-weight: bold; margin-bottom: 10px; letter-spacing: 3px;">NEURAL INTRUSION DETECTED</div>
+                    <div id="mapTextSub" style="font-size: 10px; color: #888;">[ BIOMETRIC MAP NODE OVERLAY ACTIVE ]</div>
+                    <div id="vectorTicker" style="margin-top: 30px; font-size: 14px; font-weight: bold;">
+                        CORE VECTOR: <span id="liveVectorNum" style="color: var(--neon-orange);">489.12</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <div class="panel-header">// MITIGATION VISUALIZATION ENGINE</div>
+                <div class="propagation-display">
+                    <div id="terminalLine1" class="log-terminal">>> DEPLOYING NEURAL SHIELD WALLS...</div>
+                    <div id="terminalLine2" style="margin-top: 5px; color: var(--neon-orange);">>> ISOLATING NODE CLUSTERS 0x7F TO 0x8C</div>
+                    <div id="terminalLine3" style="margin-top: 5px; color: #555;">>> ANALYZING WIRELESS ATTACK VECTOR MATRICES...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="column-stack">
+            <div class="panel">
+                <div class="panel-header">// COUNTER ACTION SYSTEM</div>
+                <div class="data-row"><span class="data-label">DEFENSE DRONES</span><span id="drones" class="status-badge status-danger">DEPLOYED</span></div>
+                <div class="data-row"><span class="data-label">CORE SEC FIREWALL</span><span id="firewall" class="status-badge status-danger">BREACHED</span></div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">// DETECTED MALICIOUS PAYLOADS</div>
+                <div id="vectorList">
+                    <div class="threat-item threat-critical">
+                        <div><strong>EM VIRUS ROOT</strong><br><span style="color: #666;">Injected at system bus network layer</span></div>
+                        <span class="status-badge status-danger">CRIT</span>
+                    </div>
+                    <div class="threat-item threat-critical">
+                        <div><strong>RF INTERCEPTOR</strong><br><span style="color: #666;">Over-the-air layer-2 packet manipulation</span></div>
+                        <span class="status-badge status-danger">CRIT</span>
+                    </div>
+                    <div class="threat-item" id="threatIr">
+                        <div><strong>IR OVERLAY LOOP</strong><br><span style="color: #666;">Optical input manipulation spoofing</span></div>
+                        <span class="status-badge status-warning">WARN</span>
+                    </div>
+                    <div class="threat-item" id="threatAnalog">
+                        <div><strong>ANALOG INTERFACE TAP</strong><br><span style="color: #666;">Physical voltage manipulation splice</span></div>
+                        <span class="status-badge status-warning">WARN</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Real-time Fluctuating Metric Engine
+        setInterval(() => {
+            const liveNum = (Math.random() * (999.99 - 100.00) + 100.00).toFixed(2);
+            const tickerElement = document.getElementById('liveVectorNum');
+            if(tickerElement) tickerElement.innerText = liveNum;
+
+            const isBreach = document.body.classList.contains('breach-active');
+            if (isBreach) {
+                const emgVal = Math.floor(Math.random() * (98 - 75) + 75);
+                document.getElementById('bioEmg').innerText = `${emgVal} Hz [ERR]`;
+                const gsrVal = (Math.random() * (6.5 - 4.0) + 4.0).toFixed(1);
+                document.getElementById('bioGsr').innerText = `${gsrVal} uS [SPK]`;
+            } else {
+                const emgVal = Math.floor(Math.random() * (45 - 38) + 38);
+                document.getElementById('bioEmg').innerText = `${emgVal} Hz [STB]`;
+                const gsrVal = (Math.random() * (1.8 - 1.2) + 1.2).toFixed(1);
+                document.getElementById('bioGsr').innerText = `${gsrVal} uS [OK]`;
+            }
+
+            const logs = [
+                ">> MONITORING INJECTED ENCRYPTED STACKS...",
+                ">> COUNTER-ROUTING ATTACK LOGIC MATRIX...",
+                ">> BIOMETRIC RE-VERIFICATION UNDERWAY...",
+                ">> NULLIFYING PARASITIC SIGNAL OVERLAYS...",
+                ">> SECURITY PACKET CHECKSUM VERIFIED..."
+            ];
+            const randomLog = logs[Math.floor(Math.random() * logs.length)];
+            document.getElementById('terminalLine3').innerText = document.getElementById('terminalLine2').innerText;
+            document.getElementById('terminalLine2').innerText = document.getElementById('terminalLine1').innerText;
+            document.getElementById('terminalLine1').innerText = randomLog;
+        }, 1000);
+
+        // System State Machine Toggler
+        function setSystemState(state) {
+            const banner = document.getElementById('alertBanner');
+            const mapCanvas = document.getElementById('mapCanvas');
+            const mapTextMain = document.getElementById('mapTextMain');
+            const mapTextSub = document.getElementById('mapTextSub');
+            const netScan = document.getElementById('netScan');
+            const envMotion = document.getElementById('envMotion');
+            const envThermal = document.getElementById('envThermal');
+            const lockdownPanel = document.getElementById('lockdownPanel');
+            const lockdownStatus = document.getElementById('lockdownStatus');
+            const drones = document.getElementById('drones');
+            const firewall = document.getElementById('firewall');
+            const bioEeg = document.getElementById('bioEeg');
+            const vectorList = document.getElementById('vectorList');
+            const rootBody = document.body;
+
+            if (state === 'nominal') {
+                rootBody.classList.remove('breach-active');
+                banner.innerText = "ALL SYSTEMS OPERATIONAL // SECURE_MODE_STANDBY";
+                banner.style.borderColor = "var(--neon-green)";
+                banner.style.color = "var(--neon-green)";
+                banner.style.textShadow = "0 0 5px var(--neon-green)";
+
+                mapCanvas.style.borderColor = "var(--neon-green)";
+                mapCanvas.style.background = "rgba(0, 20, 5, 0.6)";
+                mapCanvas.style.setProperty('--neon-red', 'var(--neon-green)');
+                mapTextMain.innerText = "BIO-LINK ENGINE ONLINE";
+                mapTextMain.style.color = "var(--neon-green)";
+                mapTextSub.innerText = "[ TELEMETRY STREAM NOMINAL ]";
+
+                netScan.className = "status-badge status-success"; netScan.innerText = "IDLE";
+                envMotion.className = "status-badge status-success"; envMotion.innerText = "CLEARED";
+                envThermal.className = "status-badge status-success"; envThermal.innerText = "36.6C [OK]";
+
+                lockdownPanel.style.borderColor = "var(--text-dim)";
+                lockdownStatus.className = "status-badge status-success"; lockdownStatus.innerText = "STANDBY";
+                drones.className = "status-badge status-success"; drones.innerText = "STOWED";
+                firewall.className = "status-badge status-success"; firewall.innerText = "ONLINE";
+                bioEeg.className = "status-badge status-success"; bioEeg.innerText = "10 Hz [STB]";
+                vectorList.style.opacity = "0.2";
+
+            } else if (state === 'breach') {
+                rootBody.classList.add('breach-active');
+                banner.innerText = "SYSTEM BREACH! AIENT LEVEL: CRITICAL";
+                banner.style.borderColor = "var(--neon-red)";
+                banner.style.color = "var(--neon-red)";
+                banner.style.textShadow = "0 0 5px var(--neon-red)";
+
+                mapCanvas.style.borderColor = "var(--neon-red)";
+                mapCanvas.style.background = "rgba(20, 0, 5, 0.6)";
+                mapTextMain.innerText = "NEURAL INTRUSION DETECTED";
+                mapTextMain.style.color = "var(--neon-red)";
+                mapTextSub.innerText = "[ BIOMETRIC MAP NODE OVERLAY ACTIVE ]";
+
+                netScan.className = "status-badge status-danger"; netScan.innerText = "SCANNING...";
+                envMotion.className = "status-badge status-danger"; envMotion.innerText = "TRIP [ZN_04]";
+                envThermal.className = "status-badge status-danger"; envThermal.innerText = "+5.2C [ELEV]";
+
+                lockdownPanel.style.borderColor = "var(--neon-red)";
+                lockdownStatus.className = "status-badge status-danger"; lockdownStatus.innerText = "SECURE ON";
+                drones.className = "status-badge status-danger"; drones.innerText = "DEPLOYED";
+                firewall.className = "status-badge status-danger"; firewall.innerText = "BREACHED";
+                vectorList.style.opacity = "1";
+            }
+        }
+    </script>
 </body>
 </html>
